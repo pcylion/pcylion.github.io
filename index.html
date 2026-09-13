@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Easy Bill Maker</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2F5233">
+<!-- Google AdSense publisher ID: ca-pub-5718298836909354 -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5718298836909354" crossorigin="anonymous"></script>
+<!-- Used to turn the bill preview into a shareable photo/PDF, and to export sales-record PDFs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --paper:#FAF8F4;
+    --paper-alt:#F1EDE4;
+    --ink:#232019;
+    --ink-soft:#5B564C;
+    --line:#D9D2C3;
+    --accent:#2F5233;
+    --accent-soft:#E4EBE1;
+    --danger:#8C3B2E;
+    --gold:#A9793C;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper-alt);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+
+  .topbar{
+    max-width:1200px;
+    margin:0 auto;
+    padding:32px 20px 0;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:16px;
+  }
+  h1{
+    font-family:'Source Serif 4',serif;
+    font-weight:700;
+    font-size:28px;
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  .tagline{color:var(--ink-soft); font-size:14px; margin:0;}
+
+  .nav-toggle{
+    display:flex;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:3px;
+  }
+  .nav-toggle button{
+    background:none;
+    border:none;
+    padding:9px 16px;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    border-radius:6px;
+    cursor:pointer;
+  }
+  .nav-toggle button.active{
+    background:var(--accent);
+    color:#fff;
+  }
+
+  .app{
+    max-width:1200px;
+    margin:0 auto;
+    padding:24px 20px 80px;
+    display:none;
+    grid-template-columns:1fr;
+    gap:28px;
+  }
+  .app.visible{display:grid;}
+  @media(min-width:960px){
+    .app.billmaker{grid-template-columns:420px 1fr; align-items:start;}
+  }
+
+  /* ---- FORM PANEL ---- */
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:24px;
+  }
+  .panel + .panel{margin-top:20px;}
+  .panel h2{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ink-soft);
+    margin:0 0 16px;
+    font-weight:600;
+  }
+
+  label{
+    display:block;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-bottom:4px;
+  }
+  input, select{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    background:#fff;
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    color:var(--ink);
+  }
+  input:focus, select:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-soft);
+  }
+  .field{margin-bottom:14px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+
+  .item-form{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+    padding-top:6px;
+    border-top:1px dashed var(--line);
+    margin-top:6px;
+  }
+  .item-form .row3{display:grid; grid-template-columns:1fr 100px 110px; gap:8px;}
+
+  button{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    border:none;
+    border-radius:6px;
+    padding:10px 16px;
+    cursor:pointer;
+  }
+  .btn-add{
+    background:var(--accent);
+    color:#fff;
+    width:100%;
+    margin-top:4px;
+  }
+  .btn-add:hover{background:#26421f;}
+  .btn-secondary{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink);
+  }
+  .btn-secondary:hover{background:var(--paper-alt);}
+  .btn-danger-text{
+    background:none;
+    border:none;
+    color:var(--danger);
+    font-size:12.5px;
+    font-weight:500;
+    padding:2px 6px;
+    text-decoration:underline;
+  }
+
+  .actions-row{
+    display:flex;
+    gap:10px;
+    margin-top:14px;
+    flex-wrap:wrap;
+  }
+  .actions-row button{flex:1; min-width:160px;}
+
+  .save-note{
+    font-size:12.5px;
+    color:var(--accent);
+    margin-top:10px;
+    text-align:center;
+    min-height:16px;
+  }
+
+  /* ---- ITEM LIST (in form) ---- */
+  .item-row{
+    display:grid;
+    grid-template-columns:1fr auto;
+    align-items:center;
+    gap:8px;
+    padding:8px 0;
+    border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .item-row:last-child{border-bottom:none;}
+  .item-meta{color:var(--ink-soft); font-size:12px;}
+
+  /* ---- BILL PREVIEW ---- */
+  .bill-wrap{
+    background:var(--paper-alt);
+    border-radius:10px;
+    padding:8px;
+  }
+  #bill{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:40px 44px;
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    max-width:720px;
+    margin:0 auto;
+  }
+  .bill-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:20px;
+    padding-bottom:20px;
+    border-bottom:2px solid var(--ink);
+  }
+  .shop-name{
+    font-family:'Source Serif 4',serif;
+    font-weight:700;
+    font-size:26px;
+    margin:0 0 4px;
+    line-height:1.15;
+  }
+  .shop-sub{
+    font-size:13px;
+    color:var(--ink-soft);
+    line-height:1.5;
+    white-space:pre-line;
+    max-width:340px;
+  }
+  .bill-doc-meta{
+    text-align:right;
+    font-size:13px;
+    color:var(--ink-soft);
+    line-height:1.6;
+    white-space:nowrap;
+  }
+  .bill-doc-meta .label{color:var(--ink-soft);}
+  .bill-doc-meta .val{color:var(--ink); font-weight:600;}
+
+  .bill-parties{
+    display:flex;
+    justify-content:space-between;
+    gap:20px;
+    padding:18px 0;
+    border-bottom:1px dashed var(--line);
+  }
+  .party-block .eyebrow{
+    font-size:11px;
+    color:var(--ink-soft);
+    margin:0 0 4px;
+  }
+  .party-block .name{font-weight:600; font-size:14.5px;}
+  .party-block .note{font-size:13px; color:var(--ink-soft); white-space:pre-line;}
+
+  table{width:100%; border-collapse:collapse; margin-top:22px;}
+  thead th{
+    text-align:left;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    font-weight:600;
+    padding:0 6px 10px;
+    border-bottom:1px solid var(--ink);
+  }
+  thead th.num{text-align:right;}
+  tbody td{
+    padding:10px 6px;
+    font-size:14px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  tbody td.num{text-align:right; font-variant-numeric:tabular-nums;}
+  tbody tr:last-child td{border-bottom:1px solid var(--ink);}
+  .item-name{font-weight:500;}
+
+  .totals{
+    margin-top:16px;
+    margin-left:auto;
+    width:260px;
+  }
+  .totals .line{
+    display:flex; justify-content:space-between;
+    font-size:14px; padding:5px 6px;
+    color:var(--ink-soft);
+  }
+  .totals .line.grand{
+    color:var(--ink);
+    font-weight:700;
+    font-size:17px;
+    border-top:2px solid var(--ink);
+    margin-top:4px;
+    padding-top:10px;
+  }
+  .grand .amt{color:var(--accent);}
+
+  .bill-footer{
+    margin-top:32px;
+    padding-top:16px;
+    border-top:1px dashed var(--line);
+    font-size:12.5px;
+    color:var(--ink-soft);
+    white-space:pre-line;
+  }
+
+  .top-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-bottom:14px;
+  }
+
+  /* ---- DASHBOARD ---- */
+  .dash-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:16px;
+    margin-bottom:24px;
+  }
+  @media(min-width:760px){
+    .dash-grid{grid-template-columns:repeat(4,1fr);}
+  }
+  .stat-card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px 20px;
+  }
+  .stat-card .stat-label{
+    font-size:12px;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    margin:0 0 8px;
+  }
+  .stat-card .stat-amt{
+    font-family:'Source Serif 4',serif;
+    font-weight:700;
+    font-size:24px;
+    color:var(--accent);
+    margin:0 0 4px;
+  }
+  .stat-card .stat-sub{
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+
+  .dash-panel{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:24px;
+    margin-bottom:20px;
+  }
+  .dash-panel h2{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ink-soft);
+    margin:0 0 4px;
+    font-weight:600;
+  }
+  .dash-panel .sub{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:0 0 16px;
+  }
+
+  .rank-row{
+    display:grid;
+    grid-template-columns:24px 1fr auto auto;
+    align-items:center;
+    gap:12px;
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .rank-row:last-child{border-bottom:none;}
+  .rank-num{
+    font-family:'Source Serif 4',serif;
+    font-weight:700;
+    color:var(--gold);
+    font-size:15px;
+  }
+  .rank-name{font-size:14px; font-weight:500;}
+  .rank-bar-wrap{
+    grid-column:1 / -1;
+    background:var(--paper-alt);
+    border-radius:4px;
+    height:6px;
+    margin-top:2px;
+    overflow:hidden;
+  }
+  .rank-bar{
+    height:100%;
+    background:var(--accent);
+    border-radius:4px;
+  }
+  .rank-qty{font-size:12.5px; color:var(--ink-soft); white-space:nowrap;}
+  .rank-rev{font-size:14px; font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums;}
+
+  .history-row{
+    display:grid;
+    grid-template-columns:1fr auto auto;
+    align-items:center;
+    gap:12px;
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .history-row:last-child{border-bottom:none;}
+  .history-date{color:var(--ink-soft); font-size:12.5px;}
+  .history-amt{font-weight:600; font-variant-numeric:tabular-nums;}
+
+  .archive-row{
+    display:grid;
+    grid-template-columns:1fr auto auto auto;
+    align-items:center;
+    gap:10px;
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+    font-size:13.5px;
+  }
+  .archive-row:last-child{border-bottom:none;}
+
+  .empty-state{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+
+  /* ---- PRO LOCK ---- */
+  .lock-screen{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:40px 32px;
+    max-width:420px;
+    margin:20px auto 0;
+    text-align:center;
+  }
+  .lock-screen .lock-icon{font-size:32px; margin-bottom:8px;}
+  .lock-screen h2{
+    font-family:'Source Serif 4',serif;
+    font-size:20px;
+    margin:0 0 8px;
+    text-transform:none;
+    letter-spacing:0;
+    color:var(--ink);
+  }
+  .lock-screen p{font-size:13.5px; color:var(--ink-soft); margin:0 0 20px; line-height:1.5;}
+  .lock-screen .field{text-align:left;}
+  .pro-badge{
+    display:inline-block;
+    background:var(--gold);
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.04em;
+    padding:2px 8px;
+    border-radius:4px;
+    margin-left:8px;
+    vertical-align:middle;
+  }
+  .lock-error{color:var(--danger); font-size:12.5px; margin-top:10px; min-height:16px;}
+  .lock-divider{
+    display:flex; align-items:center; gap:10px;
+    color:var(--ink-soft); font-size:12px;
+    margin:18px 0;
+  }
+  .lock-divider::before, .lock-divider::after{
+    content:''; flex:1; height:1px; background:var(--line);
+  }
+
+  /* ---- ADS ---- */
+  .ad-banner{
+    max-width:1200px;
+    margin:16px auto 0;
+    padding:0 20px;
+  }
+  .ad-banner .ad-label{
+    font-size:10.5px;
+    color:var(--ink-soft);
+    text-align:center;
+    margin-bottom:4px;
+    letter-spacing:.04em;
+  }
+
+  /* ---- SITE FOOTER (About / FAQ) ---- */
+  .site-footer{
+    max-width:900px;
+    margin:48px auto 0;
+    padding:32px 20px 60px;
+    border-top:1px solid var(--line);
+    color:var(--ink-soft);
+    font-size:13.5px;
+    line-height:1.6;
+  }
+  .site-footer h2{
+    font-family:'Source Serif 4',serif;
+    font-size:19px;
+    color:var(--ink);
+    font-weight:700;
+    margin:28px 0 10px;
+  }
+  .site-footer h2:first-child{margin-top:0;}
+  .site-footer h3{
+    font-size:14px;
+    color:var(--ink);
+    font-weight:600;
+    margin:16px 0 4px;
+  }
+  .site-footer ul{margin:6px 0; padding-left:20px;}
+  .site-footer a{color:var(--accent);}
+  .footer-links{
+    margin-top:24px;
+    padding-top:16px;
+    border-top:1px dashed var(--line);
+    font-size:12.5px;
+  }
+
+  /* ---- PRINT ---- */
+  @media print{
+    body *{visibility:hidden;}
+    #bill, #bill *{visibility:visible;}
+    #bill{
+      position:absolute;
+      top:0; left:0;
+      width:100%;
+      border:none;
+      box-shadow:none;
+      margin:0;
+      padding:10mm 12mm;
+    }
+    @page{margin:0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>Easy Bill Maker</h1>
+    <p class="tagline">Fast Billing, Fast Growing.</p>
+  </div>
+  <div class="nav-toggle">
+    <button id="navBill" class="active" onclick="showView('bill')">New Bill</button>
+    <button id="navArchive" onclick="showView('archive')">My Bills</button>
+    <button id="navDash" onclick="showView('dash')">Sales Dashboard</button>
+  </div>
+</div>
+
+<!-- Ad banner: hidden automatically for Pro users -->
+<div id="adBanner" class="ad-banner">
+  <p class="ad-label">Advertisement</p>
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-5718298836909354"
+       data-ad-slot="XXXXXXXXXX"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+</div>
+<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+
+<!-- ================= BILL MAKER VIEW ================= -->
+<div id="viewBill" class="app billmaker visible">
+
+  <!-- LEFT: INPUT -->
+  <div>
+    <div class="panel">
+      <h2>Shop / issued by</h2>
+      <div class="field">
+        <label for="shopName">Shop or business name</label>
+        <input id="shopName" placeholder="e.g. Green Valley General Store">
+      </div>
+      <div class="field">
+        <label for="shopDetails">Address / phone / GST / notes (optional)</label>
+        <input id="shopDetails" placeholder="e.g. Main Road, Your City · +91-XXXXXXXXXX">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="billNo">Bill / invoice no. (auto-suggested, editable)</label>
+          <input id="billNo" placeholder="e.g. 00001">
+        </div>
+        <div class="field">
+          <label for="billDate">Date</label>
+          <input id="billDate" type="date">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Bill to / instructions</h2>
+      <div class="field">
+        <label for="customerName">Customer name</label>
+        <input id="customerName" placeholder="e.g. Walk-in customer">
+      </div>
+      <div class="field">
+        <label for="customerNote">Extra instructions or note (optional)</label>
+        <input id="customerNote" placeholder="e.g. Delivery by evening, cash on delivery">
+      </div>
+      <div class="field">
+        <label for="customerPhone">Customer phone (opens their WhatsApp chat directly, even if unsaved — also used for SMS)</label>
+        <input id="customerPhone" type="tel" placeholder="e.g. 9876543210">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Add ingredient / item</h2>
+      <div class="item-form">
+        <div class="field" style="margin-bottom:0;">
+          <label for="itemName">Ingredient / item name</label>
+          <input id="itemName" placeholder="e.g. Mustard oil">
+        </div>
+        <div class="row3">
+          <div class="field" style="margin-bottom:0;">
+            <label for="itemQty">Quantity</label>
+            <input id="itemQty" type="number" step="any" placeholder="e.g. 2.5">
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label for="itemUnit">Unit</label>
+            <select id="itemUnit">
+              <option>kg</option>
+              <option>litre</option>
+              <option>piece</option>
+              <option>gram</option>
+              <option>ml</option>
+              <option>dozen</option>
+              <option>packet</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label for="itemPrice">Price / unit (₹)</label>
+            <input id="itemPrice" type="number" step="any" placeholder="e.g. 140">
+          </div>
+        </div>
+        <button class="btn-add" onclick="addItem()">+ Add item to bill</button>
+      </div>
+
+      <div id="itemListWrap" style="margin-top:16px;"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Extra charges (optional)</h2>
+      <div class="row2">
+        <div class="field">
+          <label for="discount">Discount</label>
+          <input id="discount" type="number" step="any" placeholder="0" oninput="render()">
+        </div>
+        <div class="field">
+          <label for="discountType">Discount type</label>
+          <select id="discountType" onchange="render()">
+            <option value="amount">₹ Amount</option>
+            <option value="percent">% Off (e.g. 30% sale)</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="taxPct">Tax (%)</label>
+        <input id="taxPct" type="number" step="any" placeholder="0" oninput="render()">
+      </div>
+      <div class="field">
+        <label for="footerNote">Footer note (optional)</label>
+        <input id="footerNote" placeholder="e.g. Thank you for your business!" oninput="render()">
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: PREVIEW -->
+  <div>
+    <div class="top-actions">
+      <button class="btn-secondary" onclick="clearAll()">Clear bill</button>
+      <button class="btn-add" style="flex:none;" onclick="printBill()">🖨 Print / Save as PDF</button>
+    </div>
+    <div class="bill-wrap">
+      <div id="bill"></div>
+    </div>
+    <div class="actions-row">
+      <button class="btn-secondary" onclick="shareBillPhoto()">📷 Share Photo — WhatsApp</button>
+      <button class="btn-secondary" onclick="shareBillPDF()">📄 Share PDF — WhatsApp</button>
+    </div>
+    <div class="actions-row">
+      <button class="btn-secondary" onclick="shareWhatsAppText()">💬 Send text to a number — WhatsApp</button>
+      <button class="btn-secondary" onclick="shareSMS()">✉️ Send text — SMS</button>
+    </div>
+    <p class="save-note" id="saveNote"></p>
+  </div>
+
+</div>
+
+<!-- ================= DASHBOARD VIEW ================= -->
+<div id="viewDash" class="app">
+  <div style="grid-column:1/-1;">
+
+    <!-- LOCK SCREEN (shown when Pro is not unlocked) -->
+    <div id="lockScreen" class="lock-screen" style="display:none;">
+      <div class="lock-icon">🔒</div>
+      <h2>Sales Dashboard <span class="pro-badge">PRO</span></h2>
+      <p>Automatic sales tracking, the dashboard, and exports to Excel, PDF and Word are part of Easy Bill Maker Pro.</p>
+      <div class="field" style="text-align:center;">
+        <label style="text-align:center;">Shop name on file</label>
+        <p id="lockShopNameDisplay" style="font-weight:600; font-size:15px; margin:0 0 4px;">—</p>
+      </div>
+      <div class="field">
+        <label for="unlockKey">License key</label>
+        <input id="unlockKey" placeholder="e.g. A1B2-C3D4">
+      </div>
+      <button class="btn-add" id="unlockBtn" onclick="unlockPro()">Unlock Pro</button>
+      <p class="lock-error" id="unlockError"></p>
+
+      <div class="lock-divider">or</div>
+      <button class="btn-secondary" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="emailAboutPro()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        Contact Us for Pro Pricing
+      </button>
+    </div>
+
+    <!-- RESET APP — visible to everyone, Pro or not -->
+    <div class="dash-panel">
+      <h2>Reset app</h2>
+      <p class="sub">Wipes everything saved on this device — shop name/address, all bills in My Bills, all Pro sales records, bill number counter, and Pro unlock. Use this before handing the device to someone else, or to start completely fresh.</p>
+      <div id="resetStep1">
+        <button class="btn-secondary" style="color:var(--danger); border-color:var(--danger);" onclick="showResetConfirm()">⚠ Reset app (clear everything)</button>
+      </div>
+      <div id="resetStep2" style="display:none;">
+        <p style="color:var(--danger); font-weight:600; font-size:13.5px; margin:0 0 10px;">Are you absolutely sure? This cannot be undone.</p>
+        <div class="actions-row">
+          <button class="btn-secondary" onclick="hideResetConfirm()">Cancel</button>
+          <button class="btn-add" style="background:var(--danger);" onclick="resetApp()">Yes, erase everything</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FULL DASHBOARD (shown once unlocked) -->
+    <div id="dashContent" style="display:none;">
+
+    <div class="dash-grid">
+      <div class="stat-card">
+        <p class="stat-label">Today</p>
+        <p class="stat-amt" id="statToday">₹0</p>
+        <p class="stat-sub" id="statTodayCount">0 bills</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">This month</p>
+        <p class="stat-amt" id="statMonth">₹0</p>
+        <p class="stat-sub" id="statMonthCount">0 bills</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">This year</p>
+        <p class="stat-amt" id="statYear">₹0</p>
+        <p class="stat-sub" id="statYearCount">0 bills</p>
+      </div>
+      <div class="stat-card">
+        <p class="stat-label">Till date</p>
+        <p class="stat-amt" id="statAll">₹0</p>
+        <p class="stat-sub" id="statAllCount">0 bills</p>
+      </div>
+    </div>
+
+    <div class="dash-panel">
+      <h2>Records for</h2>
+      <div class="field">
+        <label for="periodSelect">Time range</label>
+        <select id="periodSelect" onchange="onPeriodChange()">
+          <option value="24h">Last 24 hours</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="180">Last 180 days</option>
+          <option value="365">Last 1 year</option>
+          <option value="life" selected>Lifetime</option>
+          <option value="custom">Custom range</option>
+        </select>
+      </div>
+      <div class="row2" id="customRangeWrap" style="display:none;">
+        <div class="field" style="margin-bottom:0;">
+          <label for="customFrom">From</label>
+          <input type="date" id="customFrom" onchange="onPeriodChange()">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label for="customTo">To</label>
+          <input type="date" id="customTo" onchange="onPeriodChange()">
+        </div>
+      </div>
+      <p class="sub" id="periodSummary" style="margin:12px 0 0;"></p>
+    </div>
+
+    <div class="dash-panel">
+      <h2>Most popular items</h2>
+      <div class="field">
+        <label for="rankSort">Sort by</label>
+        <select id="rankSort" onchange="renderDashboard()">
+          <option value="revenue">Money earned</option>
+          <option value="qty">Quantity sold</option>
+          <option value="bills">Number of times bought</option>
+        </select>
+      </div>
+      <div id="rankList"></div>
+    </div>
+
+    <div class="dash-panel">
+      <h2>Top customers</h2>
+      <p class="sub">Ranked by total spend in the selected range. Walk-in/unnamed sales aren't included here.</p>
+      <div id="customerRankList"></div>
+    </div>
+
+    <div class="dash-panel">
+      <h2>Sales records</h2>
+      <p class="sub" id="historySub">Bills in the selected range, most recent first.</p>
+      <div id="historyList"></div>
+      <div class="actions-row" style="margin-top:16px;">
+        <button class="btn-secondary" onclick="exportCSV()">⬇ Excel (.csv)</button>
+        <button class="btn-secondary" onclick="exportPDF()">⬇ PDF</button>
+        <button class="btn-secondary" onclick="exportWord()">⬇ Word (.doc)</button>
+        <button class="btn-secondary" onclick="clearHistory()">Clear all sales records</button>
+      </div>
+    </div>
+
+    </div><!-- /dashContent -->
+
+  </div>
+</div>
+
+<!-- ================= MY BILLS (ARCHIVE) VIEW — free feature, keeps every bill on this device ================= -->
+<div id="viewArchive" class="app">
+  <div style="grid-column:1/-1;">
+    <div class="dash-panel">
+      <h2>My Bills</h2>
+      <p class="sub">Every bill you've printed or shared is saved here automatically, so you can find and reopen it anytime — no Pro subscription needed.</p>
+      <div id="archiveList"></div>
+      <div class="actions-row" style="margin-top:16px;">
+        <button class="btn-secondary" onclick="clearArchive()">Clear all saved bills</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let items = [];
+const SALES_KEY = 'easyBillMaker_sales_v1';
+const PRO_KEY = 'easyBillMaker_pro_v1';
+const SHOP_PROFILE_KEY = 'easyBillMaker_shopProfile_v1';
+const BILL_COUNTER_KEY = 'easyBillMaker_billCounter_v1';
+const ARCHIVE_KEY = 'easyBillMaker_billArchive_v1';
+// Change this secret before selling licenses — it's what your key generator must match.
+const LICENSE_SECRET = 'EBM-PCYLION-2026';
+
+function computeLicenseKey(shopName){
+  const input = (shopName||'').trim().toLowerCase() + LICENSE_SECRET;
+  let hash = 0;
+  for(let i=0;i<input.length;i++){
+    hash = (hash*31 + input.charCodeAt(i)) >>> 0;
+  }
+  let code = hash.toString(36).toUpperCase();
+  while(code.length < 8) code = '0'+code;
+  code = code.slice(0,8);
+  return code.slice(0,4)+'-'+code.slice(4,8);
+}
+
+function isPro(){
+  try{
+    const raw = localStorage.getItem(PRO_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    return data && data.shopName && data.key === computeLicenseKey(data.shopName);
+  }catch(e){ return false; }
+}
+
+function unlockPro(){
+  const shopName = document.getElementById('shopName').value.trim();
+  const key = document.getElementById('unlockKey').value.trim().toUpperCase();
+  const errEl = document.getElementById('unlockError');
+
+  if(!shopName){
+    errEl.textContent = 'Enter your shop name on the New Bill tab first.';
+    return;
+  }
+  if(!key){
+    errEl.textContent = 'Enter your license key.';
+    return;
+  }
+  if(key === computeLicenseKey(shopName)){
+    localStorage.setItem(PRO_KEY, JSON.stringify({shopName, key}));
+    errEl.textContent = '';
+    renderDashboard();
+    updateAdVisibility();
+    updateTrackingStatus();
+  } else {
+    errEl.textContent = 'That key doesn\'t match this shop name. Check both and try again.';
+  }
+}
+
+// Replace this with your real email address before publishing.
+const PRO_CONTACT_EMAIL = 'mdtoufikhassan46@gmail.com';
+
+function emailAboutPro(){
+  const shopName = document.getElementById('shopName').value.trim();
+  const subject = 'Easy Bill Maker — Pro Subscription Inquiry';
+  const body =
+    'Dear Sir/Madam,\n\n' +
+    'I am currently using Easy Bill Maker and would like to inquire about the Pro subscription, including its pricing and features.\n\n' +
+    'Shop name: ' + (shopName || '[your shop name]') + '\n\n' +
+    'Thank you for your time. I look forward to your response.\n\n' +
+    'Best regards,';
+  const mailto = 'mailto:' + PRO_CONTACT_EMAIL +
+    '?subject=' + encodeURIComponent(subject) +
+    '&body=' + encodeURIComponent(body);
+  window.location.href = mailto;
+}
+
+function updateAdVisibility(){
+  const ad = document.getElementById('adBanner');
+  if(!ad) return;
+  ad.style.display = isPro() ? 'none' : 'block';
+}
+
+function fmt(n){
+  n = Number(n)||0;
+  return n.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function showView(view){
+  document.getElementById('viewBill').classList.toggle('visible', view==='bill');
+  document.getElementById('viewDash').classList.toggle('visible', view==='dash');
+  document.getElementById('viewArchive').classList.toggle('visible', view==='archive');
+  document.getElementById('navBill').classList.toggle('active', view==='bill');
+  document.getElementById('navDash').classList.toggle('active', view==='dash');
+  document.getElementById('navArchive').classList.toggle('active', view==='archive');
+  if(view==='dash') renderDashboard();
+  if(view==='archive') renderArchive();
+}
+
+function getFilteredSales(){
+  const sales = loadSales();
+  const {start, end} = getPeriodRange();
+  return sales.filter(s=>{
+    const d = new Date(s.dateISO);
+    if(start && d < start) return false;
+    if(end && d > end) return false;
+    return true;
+  });
+}
+
+function exportCSV(){
+  const sales = getFilteredSales();
+  if(sales.length===0){ alert('No sales in this range to export.'); return; }
+
+  const rows = [['Date','Customer','Item','Quantity','Unit','Rate','Amount','Bill Total']];
+  [...sales].sort((a,b)=> new Date(a.dateISO)-new Date(b.dateISO)).forEach(s=>{
+    const dateStr = new Date(s.dateISO).toLocaleDateString('en-IN');
+    (s.items||[]).forEach(it=>{
+      rows.push([dateStr, s.customerName||'Walk-in', it.name, it.qty, it.unit, it.price, it.amount, s.total]);
+    });
+  });
+
+  const csv = rows.map(r => r.map(v=>{
+    const s = String(v).replace(/"/g,'""');
+    return /[",\n]/.test(s) ? `"${s}"` : s;
+  }).join(',')).join('\n');
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'easy-bill-maker-sales.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportPDF(){
+  const sales = getFilteredSales();
+  if(sales.length===0){ alert('No sales in this range to export.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'pt', format:'a4'});
+  const marginX = 40;
+  let y = 50;
+  const { label } = getPeriodRange();
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text('Sales Records', marginX, y); y += 22;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  doc.text(`Range: ${label}`, marginX, y); y += 24;
+
+  [...sales].sort((a,b)=> new Date(a.dateISO)-new Date(b.dateISO)).forEach(s=>{
+    const dateStr = new Date(s.dateISO).toLocaleDateString('en-IN');
+    if(y > 760){ doc.addPage(); y = 50; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text(`${dateStr}  —  ${s.customerName||'Walk-in customer'}  —  Total ₹${fmt(s.total)}`, marginX, y);
+    y += 16;
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    (s.items||[]).forEach(it=>{
+      if(y > 780){ doc.addPage(); y = 50; }
+      doc.text(`   ${it.name} — ${it.qty} ${it.unit} x ₹${fmt(it.price)} = ₹${fmt(it.amount)}`, marginX, y);
+      y += 14;
+    });
+    y += 8;
+  });
+
+  doc.save('easy-bill-maker-sales.pdf');
+}
+
+function exportWord(){
+  const sales = getFilteredSales();
+  if(sales.length===0){ alert('No sales in this range to export.'); return; }
+  const { label } = getPeriodRange();
+
+  let rows = '';
+  [...sales].sort((a,b)=> new Date(a.dateISO)-new Date(b.dateISO)).forEach(s=>{
+    const dateStr = new Date(s.dateISO).toLocaleDateString('en-IN');
+    (s.items||[]).forEach(it=>{
+      rows += `<tr><td>${escapeHtml(dateStr)}</td><td>${escapeHtml(s.customerName||'Walk-in')}</td><td>${escapeHtml(it.name)}</td><td>${it.qty} ${escapeHtml(it.unit)}</td><td>₹${fmt(it.price)}</td><td>₹${fmt(it.amount)}</td><td>₹${fmt(s.total)}</td></tr>`;
+    });
+  });
+
+  const html = `<html><head><meta charset="utf-8"><title>Sales Records</title></head><body>
+    <h2>Sales Records — ${escapeHtml(label)}</h2>
+    <table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse; font-family:sans-serif; font-size:13px;">
+      <tr style="background:#F1EDE4;"><th>Date</th><th>Customer</th><th>Item</th><th>Qty</th><th>Rate</th><th>Amount</th><th>Bill Total</th></tr>
+      ${rows}
+    </table>
+  </body></html>`;
+
+  const blob = new Blob(['\ufeff', html], {type:'application/msword'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'easy-bill-maker-sales.doc';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- ITEM ENTRY ---------- */
+function addItem(){
+  const name = document.getElementById('itemName').value.trim();
+  const qty = parseFloat(document.getElementById('itemQty').value);
+  const unit = document.getElementById('itemUnit').value;
+  const price = parseFloat(document.getElementById('itemPrice').value);
+
+  if(!name || isNaN(qty) || isNaN(price)){
+    alert('Please fill in item name, quantity and price.');
+    return;
+  }
+
+  items.push({name, qty, unit, price});
+  currentBillSaved = false;
+
+  document.getElementById('itemName').value='';
+  document.getElementById('itemQty').value='';
+  document.getElementById('itemPrice').value='';
+  document.getElementById('itemName').focus();
+
+  renderItemList();
+  render();
+}
+
+function removeItem(idx){
+  items.splice(idx,1);
+  currentBillSaved = false;
+  renderItemList();
+  render();
+}
+
+function renderItemList(){
+  const wrap = document.getElementById('itemListWrap');
+  if(items.length===0){ wrap.innerHTML=''; return; }
+  wrap.innerHTML = items.map((it,idx)=>`
+    <div class="item-row">
+      <div>
+        <div>${escapeHtml(it.name)}</div>
+        <div class="item-meta">${it.qty} ${it.unit} × ₹${fmt(it.price)} = ₹${fmt(it.qty*it.price)}</div>
+      </div>
+      <button class="btn-danger-text" onclick="removeItem(${idx})">Remove</button>
+    </div>
+  `).join('');
+}
+
+/* ---------- BILL RENDER ---------- */
+function getBillFields(){
+  return {
+    shopName: document.getElementById('shopName').value.trim() || 'Your Shop Name',
+    shopDetails: document.getElementById('shopDetails').value.trim(),
+    billNo: document.getElementById('billNo').value.trim(),
+    billDate: document.getElementById('billDate').value,
+    customerName: document.getElementById('customerName').value.trim(),
+    customerNote: document.getElementById('customerNote').value.trim(),
+    discount: parseFloat(document.getElementById('discount').value)||0,
+    discountType: document.getElementById('discountType').value || 'amount',
+    taxPct: parseFloat(document.getElementById('taxPct').value)||0,
+    footerNote: document.getElementById('footerNote').value.trim()
+  };
+}
+
+function computeDiscountAmount(subtotal, f){
+  if(f.discountType === 'percent') return subtotal * (f.discount/100);
+  return f.discount;
+}
+
+function render(){
+  const f = getBillFields();
+  const dateDisplay = f.billDate ? new Date(f.billDate+'T00:00:00').toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'}) : '—';
+
+  const subtotal = items.reduce((s,it)=> s + it.qty*it.price, 0);
+  const discAmt = computeDiscountAmount(subtotal, f);
+  const taxAmt = subtotal * (f.taxPct/100);
+  const grandTotal = subtotal - discAmt + taxAmt;
+
+  let rowsHtml = '';
+  if(items.length===0){
+    rowsHtml = `<tr><td colspan="4" style="text-align:center; color:var(--ink-soft); padding:30px 0;">No items added yet</td></tr>`;
+  } else {
+    rowsHtml = items.map(it => `
+      <tr>
+        <td class="item-name">${escapeHtml(it.name)}</td>
+        <td class="num">${it.qty} ${escapeHtml(it.unit)}</td>
+        <td class="num">₹${fmt(it.price)}</td>
+        <td class="num">₹${fmt(it.qty*it.price)}</td>
+      </tr>
+    `).join('');
+  }
+
+  document.getElementById('bill').innerHTML = `
+    <div class="bill-head">
+      <div>
+        <p class="shop-name">${escapeHtml(f.shopName)}</p>
+        ${f.shopDetails ? `<p class="shop-sub">${escapeHtml(f.shopDetails)}</p>` : ''}
+      </div>
+      <div class="bill-doc-meta">
+        <div><span class="label">Bill No: </span><span class="val">${f.billNo ? escapeHtml(f.billNo) : '—'}</span></div>
+        <div><span class="label">Date: </span><span class="val">${dateDisplay}</span></div>
+      </div>
+    </div>
+
+    ${(f.customerName || f.customerNote) ? `
+    <div class="bill-parties">
+      <div class="party-block">
+        <p class="eyebrow">Billed to</p>
+        <p class="name">${f.customerName ? escapeHtml(f.customerName) : 'Customer'}</p>
+      </div>
+      ${f.customerNote ? `
+      <div class="party-block" style="text-align:right;">
+        <p class="eyebrow">Instructions</p>
+        <p class="note">${escapeHtml(f.customerNote)}</p>
+      </div>` : ''}
+    </div>` : ''}
+
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th class="num">Quantity</th>
+          <th class="num">Rate</th>
+          <th class="num">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHtml}
+      </tbody>
+    </table>
+
+    <div class="totals">
+      <div class="line"><span>Subtotal</span><span>₹${fmt(subtotal)}</span></div>
+      ${f.discount ? `<div class="line"><span>Discount${f.discountType==='percent' ? ' ('+f.discount+'% off)' : ''}</span><span>− ₹${fmt(discAmt)}</span></div>` : ''}
+      ${f.taxPct ? `<div class="line"><span>Tax (${f.taxPct}%)</span><span>+ ₹${fmt(taxAmt)}</span></div>` : ''}
+      <div class="line grand"><span>Total</span><span class="amt">₹${fmt(grandTotal)}</span></div>
+    </div>
+
+    ${f.footerNote ? `<div class="bill-footer">${escapeHtml(f.footerNote)}</div>` : ''}
+  `;
+}
+
+function clearAll(){
+  if(!confirm('Clear the whole bill? This removes all items and customer details (your shop name/address stays saved).')) return;
+  items = [];
+  document.querySelectorAll('#viewBill input').forEach(i=>i.value='');
+  document.getElementById('discountType').value = 'amount';
+  loadShopProfile();
+  document.getElementById('billDate').valueAsDate = new Date();
+  applySuggestedBillNo();
+  currentBillSaved = false;
+  renderItemList();
+  render();
+  updateTrackingStatus();
+}
+
+/* ---------- FINALIZE: advances bill number + auto-records the sale for Pro ---------- */
+let currentBillSaved = false;
+
+function finalizeBill(){
+  if(items.length===0) return;
+  const f = getBillFields();
+
+  // bill numbering advances for everyone, Pro or not
+  const usedNum = parseInt((f.billNo||'').replace(/[^0-9]/g,''), 10);
+  if(!isNaN(usedNum)){
+    saveBillCounter(Math.max(loadBillCounter(), usedNum));
+  }
+
+  if(!currentBillSaved){
+    // My Bills archive — free feature, keeps a copy of every bill for everyone
+    saveBillToArchive(f);
+
+    // automatic sales analytics recording is Pro-only
+    if(isPro()){
+      recordSaleSilent(f);
+      flashSaveNote('✔ Saved to My Bills and your Pro sales records.');
+    } else {
+      flashSaveNote('✔ Saved to My Bills.');
+    }
+    currentBillSaved = true;
+  }
+}
+
+function updateTrackingStatus(){
+  const note = document.getElementById('saveNote');
+  if(!note) return;
+  if(isPro()){
+    note.textContent = '✔ Every bill saves automatically to My Bills and your Pro sales dashboard.';
+    note.style.color = 'var(--accent)';
+  } else {
+    note.textContent = '✔ Every bill saves automatically to My Bills. Upgrade to Pro for automatic sales analytics too.';
+    note.style.color = 'var(--ink-soft)';
+  }
+}
+
+function flashSaveNote(msg){
+  const note = document.getElementById('saveNote');
+  note.textContent = msg;
+  note.style.color = 'var(--accent)';
+  setTimeout(updateTrackingStatus, 3000);
+}
+
+function printBill(){
+  finalizeBill();
+  window.print();
+}
+
+/* ---------- SHARE: PROFESSIONAL PHOTO / PDF (WhatsApp) + TEXT (WhatsApp/SMS) ---------- */
+function buildBillText(){
+  const f = getBillFields();
+  const subtotal = items.reduce((s,it)=> s + it.qty*it.price, 0);
+  const discAmt = computeDiscountAmount(subtotal, f);
+  const taxAmt = subtotal * (f.taxPct/100);
+  const grandTotal = subtotal - discAmt + taxAmt;
+
+  let lines = [];
+  lines.push(f.shopName);
+  if(f.shopDetails) lines.push(f.shopDetails);
+  lines.push('');
+  if(f.billNo) lines.push('Bill No: '+f.billNo);
+  if(f.billDate) lines.push('Date: '+new Date(f.billDate+'T00:00:00').toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'}));
+  lines.push('');
+  items.forEach(it=>{
+    lines.push(`${it.name} - ${it.qty} ${it.unit} x ₹${fmt(it.price)} = ₹${fmt(it.qty*it.price)}`);
+  });
+  lines.push('');
+  lines.push('Subtotal: ₹'+fmt(subtotal));
+  if(f.discount) lines.push(`Discount${f.discountType==='percent' ? ' ('+f.discount+'% off)' : ''}: -₹`+fmt(discAmt));
+  if(f.taxPct) lines.push(`Tax (${f.taxPct}%): +₹`+fmt(taxAmt));
+  lines.push('Total: ₹'+fmt(grandTotal));
+  if(f.footerNote){ lines.push(''); lines.push(f.footerNote); }
+
+  return lines.join('\n');
+}
+
+function cleanPhoneNumber(){
+  const raw = document.getElementById('customerPhone').value.trim();
+  if(!raw) return null;
+  let digits = raw.replace(/[^0-9]/g, '');
+  // if it looks like a plain 10-digit Indian mobile number, assume +91
+  if(digits.length === 10) digits = '91' + digits;
+  return digits;
+}
+
+async function generateBillCanvas(){
+  const billEl = document.getElementById('bill');
+  return await html2canvas(billEl, {scale:2, backgroundColor:'#ffffff'});
+}
+
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 60000);
+}
+
+// Gives each downloaded bill a unique filename (based on its bill number, falling back to a
+// timestamp) so the browser never sees it as "the same file again" and stops asking to overwrite.
+function getBillFilename(ext){
+  const billNo = document.getElementById('billNo').value.trim();
+  const safeName = billNo ? billNo.replace(/[^a-zA-Z0-9-_]/g,'') : String(Date.now());
+  return `bill-${safeName}.${ext}`;
+}
+
+// Delivers a bill image/PDF toward the customer.
+//
+// WhatsApp only lets you pick a chat from your PHONE'S saved contacts — it has no separate address
+// book of its own. So the general "share to any app" method (Web Share API) only works if the
+// customer's number is already saved as a contact — no good for a new/unsaved customer.
+//
+// The ONLY way to open a chat with a number that was never saved is WhatsApp's own link
+// (wa.me/number) — but that link can only pre-fill TEXT, never attach a file. There is no
+// combination that does both "unsaved number" AND "file already attached" — that would require
+// WhatsApp's paid Business API and a backend server, well beyond a free client-side page.
+//
+// So: if a phone number is given, we prioritize actually reaching that number — download the file
+// and open the chat directly via wa.me (works even if never saved as a contact), one tap to attach.
+// If no phone number is given, we assume it's someone already in contacts and use the direct
+// share-to-app handoff instead, which skips the download entirely.
+async function deliverFileToCustomer(blob, filename){
+  const kind = filename.endsWith('.pdf') ? 'PDF' : 'photo';
+  const phone = cleanPhoneNumber();
+
+  if(phone){
+    downloadBlob(blob, filename);
+    const text = encodeURIComponent('Sending your bill — please see the attached file.');
+    window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+    alert(`Bill ${kind} downloaded, and WhatsApp is opening a chat with that number directly — no need to save it as a contact.\n\nTap the 📎 attach icon in WhatsApp and choose the downloaded file to send it.`);
+    return;
+  }
+
+  const file = new File([blob], filename, {type: blob.type});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file], title:'Bill', text:'Please find your bill attached.'});
+      return; // file is already attached — just pick the (saved) contact/chat
+    }catch(e){ return; /* user cancelled the share sheet */ }
+  }
+
+  downloadBlob(blob, filename);
+  alert(`Bill ${kind} downloaded — open WhatsApp and attach it manually.`);
+}
+
+async function shareBillPhoto(){
+  if(items.length===0){ alert('Add at least one item first.'); return; }
+  finalizeBill();
+  try{
+    const canvas = await generateBillCanvas();
+    canvas.toBlob(async (blob)=>{
+      if(!blob){ alert('Could not generate the bill image. Please try again.'); return; }
+      await deliverFileToCustomer(blob, getBillFilename('png'));
+    }, 'image/png');
+  }catch(e){
+    console.error(e);
+    alert('Could not generate the bill image. Please try again.');
+  }
+}
+
+async function shareBillPDF(){
+  if(items.length===0){ alert('Add at least one item first.'); return; }
+  finalizeBill();
+  try{
+    const canvas = await generateBillCanvas();
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({unit:'pt', format:'a4'});
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const imgWidth = pageWidth - 40;
+    const imgHeight = canvas.height * (imgWidth/canvas.width);
+    pdf.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight);
+    const blob = pdf.output('blob');
+    await deliverFileToCustomer(blob, getBillFilename('pdf'));
+  }catch(e){
+    console.error(e);
+    alert('Could not generate the bill PDF. Please try again.');
+  }
+}
+
+function shareWhatsAppText(){
+  if(items.length===0){ alert('Add at least one item first.'); return; }
+  const phone = cleanPhoneNumber();
+  if(!phone){ alert("Enter the customer's phone number in the 'Bill to' section first."); return; }
+  finalizeBill();
+  const text = encodeURIComponent(buildBillText());
+  window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
+}
+
+function shareSMS(){
+  if(items.length===0){ alert('Add at least one item first.'); return; }
+  const phone = cleanPhoneNumber();
+  if(!phone){ alert("Enter the customer's phone number in the 'Bill to' section first."); return; }
+  finalizeBill();
+  const text = encodeURIComponent(buildBillText());
+  window.location.href = `sms:${phone}?body=${text}`;
+}
+
+/* ---------- SALES RECORDING (Pro-only, automatic) ---------- */
+function loadSales(){
+  try{
+    const raw = localStorage.getItem(SALES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+function saveSales(sales){
+  try{ localStorage.setItem(SALES_KEY, JSON.stringify(sales)); }
+  catch(e){ console.error('Could not save sales record', e); }
+}
+
+function recordSaleSilent(f){
+  const subtotal = items.reduce((s,it)=> s + it.qty*it.price, 0);
+  const discAmt = computeDiscountAmount(subtotal, f);
+  const taxAmt = subtotal * (f.taxPct/100);
+  const grandTotal = subtotal - discAmt + taxAmt;
+
+  const sales = loadSales();
+  sales.push({
+    id: Date.now(),
+    dateISO: f.billDate ? (f.billDate+'T12:00:00') : new Date().toISOString(),
+    shopName: f.shopName,
+    customerName: f.customerName,
+    items: items.map(it=>({name:it.name, qty:it.qty, unit:it.unit, price:it.price, amount:it.qty*it.price})),
+    total: grandTotal
+  });
+  saveSales(sales);
+}
+
+/* ---------- MY BILLS ARCHIVE (free — keeps a full copy of every bill on this device) ---------- */
+function loadArchive(){
+  try{
+    const raw = localStorage.getItem(ARCHIVE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+function saveArchive(archive){
+  try{ localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive)); }
+  catch(e){ console.error('Could not save bill archive', e); }
+}
+
+function saveBillToArchive(f){
+  const subtotal = items.reduce((s,it)=> s + it.qty*it.price, 0);
+  const discAmt = computeDiscountAmount(subtotal, f);
+  const taxAmt = subtotal * (f.taxPct/100);
+  const grandTotal = subtotal - discAmt + taxAmt;
+
+  const archive = loadArchive();
+  archive.push({
+    id: Date.now(),
+    billNo: f.billNo,
+    dateISO: f.billDate ? (f.billDate+'T12:00:00') : new Date().toISOString(),
+    shopName: f.shopName,
+    shopDetails: f.shopDetails,
+    customerName: f.customerName,
+    customerNote: f.customerNote,
+    customerPhone: document.getElementById('customerPhone').value.trim(),
+    items: items.map(it=>({...it})),
+    discount: f.discount,
+    discountType: f.discountType,
+    taxPct: f.taxPct,
+    footerNote: f.footerNote,
+    total: grandTotal
+  });
+  saveArchive(archive);
+}
+
+function renderArchive(){
+  const archive = loadArchive();
+  const wrap = document.getElementById('archiveList');
+  if(archive.length===0){
+    wrap.innerHTML = `<div class="empty-state">No bills saved yet — print or share a bill and it'll show up here automatically.</div>`;
+    return;
+  }
+  const sorted = [...archive].sort((a,b)=> new Date(b.dateISO)-new Date(a.dateISO));
+  wrap.innerHTML = sorted.slice(0,100).map(b=>{
+    const d = new Date(b.dateISO);
+    const dateStr = d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+    return `
+    <div class="archive-row">
+      <span>Bill #${escapeHtml(b.billNo||'—')} — ${escapeHtml(b.customerName || 'Walk-in customer')}<br><span class="history-date">${(b.items||[]).length} item(s) · ${dateStr}</span></span>
+      <span class="history-amt">₹${fmt(b.total)}</span>
+      <button class="btn-secondary" onclick="reopenArchivedBill(${b.id})">View</button>
+    </div>`;
+  }).join('');
+}
+
+function reopenArchivedBill(id){
+  const archive = loadArchive();
+  const b = archive.find(x=>x.id===id);
+  if(!b) return;
+
+  document.getElementById('shopName').value = b.shopName || '';
+  document.getElementById('shopDetails').value = b.shopDetails || '';
+  document.getElementById('billNo').value = b.billNo || '';
+  document.getElementById('billDate').value = b.dateISO ? b.dateISO.slice(0,10) : '';
+  document.getElementById('customerName').value = b.customerName || '';
+  document.getElementById('customerNote').value = b.customerNote || '';
+  document.getElementById('customerPhone').value = b.customerPhone || '';
+  document.getElementById('discount').value = b.discount || '';
+  document.getElementById('discountType').value = b.discountType || 'amount';
+  document.getElementById('taxPct').value = b.taxPct || '';
+  document.getElementById('footerNote').value = b.footerNote || '';
+
+  items = (b.items || []).map(it => ({...it}));
+  currentBillSaved = true; // this exact bill is already archived — don't re-archive until it's edited
+
+  renderItemList();
+  render();
+  showView('bill');
+}
+
+function clearArchive(){
+  if(!confirm('Delete ALL saved bills from My Bills? This cannot be undone.')) return;
+  localStorage.removeItem(ARCHIVE_KEY);
+  renderArchive();
+}
+
+function clearHistory(){
+  if(!confirm('Delete ALL saved sales records? This cannot be undone.')) return;
+  localStorage.removeItem(SALES_KEY);
+  renderDashboard();
+}
+
+function showResetConfirm(){
+  document.getElementById('resetStep1').style.display = 'none';
+  document.getElementById('resetStep2').style.display = 'block';
+}
+
+function hideResetConfirm(){
+  document.getElementById('resetStep1').style.display = 'block';
+  document.getElementById('resetStep2').style.display = 'none';
+}
+
+function resetApp(){
+  localStorage.removeItem(SALES_KEY);
+  localStorage.removeItem(PRO_KEY);
+  localStorage.removeItem(SHOP_PROFILE_KEY);
+  localStorage.removeItem(BILL_COUNTER_KEY);
+  localStorage.removeItem(ARCHIVE_KEY);
+
+  items = [];
+  currentBillSaved = false;
+  document.querySelectorAll('#viewBill input').forEach(i=>i.value='');
+  document.getElementById('discountType').value = 'amount';
+  document.getElementById('billDate').valueAsDate = new Date();
+  applySuggestedBillNo();
+  document.getElementById('discount').value='';
+  document.getElementById('taxPct').value='';
+  document.getElementById('footerNote').value='';
+  renderItemList();
+  render();
+  updateAdVisibility();
+  updateTrackingStatus();
+  hideResetConfirm();
+  showView('bill');
+  alert('Everything has been reset on this device.');
+}
+
+/* ---------- DASHBOARD ---------- */
+function isSameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+function isSameMonth(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth(); }
+function isSameYear(a,b){ return a.getFullYear()===b.getFullYear(); }
+
+function onPeriodChange(){
+  const period = document.getElementById('periodSelect').value;
+  document.getElementById('customRangeWrap').style.display = period==='custom' ? 'grid' : 'none';
+  renderDashboard();
+}
+
+function getPeriodRange(){
+  const period = document.getElementById('periodSelect').value;
+  const now = new Date();
+  let start = null, end = now, label = 'Lifetime';
+
+  const daysAgo = (d) => new Date(now.getTime() - d*24*60*60*1000);
+
+  if(period === '24h'){ start = daysAgo(1); label = 'the last 24 hours'; }
+  else if(period === '30'){ start = daysAgo(30); label = 'the last 30 days'; }
+  else if(period === '90'){ start = daysAgo(90); label = 'the last 90 days'; }
+  else if(period === '180'){ start = daysAgo(180); label = 'the last 180 days'; }
+  else if(period === '365'){ start = daysAgo(365); label = 'the last year'; }
+  else if(period === 'life'){ start = null; label = 'your lifetime records'; }
+  else if(period === 'custom'){
+    const fromVal = document.getElementById('customFrom').value;
+    const toVal = document.getElementById('customTo').value;
+    start = fromVal ? new Date(fromVal+'T00:00:00') : null;
+    end = toVal ? new Date(toVal+'T23:59:59') : now;
+    label = (fromVal||toVal) ? `${fromVal||'the beginning'} to ${toVal||'today'}` : 'your custom range';
+  }
+  return {start, end, label};
+}
+
+function renderDashboard(){
+  const lockEl = document.getElementById('lockScreen');
+  const contentEl = document.getElementById('dashContent');
+
+  if(!isPro()){
+    lockEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    const currentShop = document.getElementById('shopName').value.trim();
+    const display = document.getElementById('lockShopNameDisplay');
+    const unlockBtn = document.getElementById('unlockBtn');
+    if(currentShop){
+      display.textContent = currentShop;
+      unlockBtn.disabled = false;
+    } else {
+      display.textContent = 'Not set yet — enter your shop name on the New Bill tab first.';
+      unlockBtn.disabled = true;
+    }
+    return;
+  }
+  lockEl.style.display = 'none';
+  contentEl.style.display = 'block';
+
+  const sales = loadSales();
+  const now = new Date();
+
+  let today={sum:0,count:0}, month={sum:0,count:0}, year={sum:0,count:0}, all={sum:0,count:0};
+
+  sales.forEach(s=>{
+    const d = new Date(s.dateISO);
+    all.sum += s.total; all.count++;
+    if(isSameYear(d, now)){ year.sum += s.total; year.count++; }
+    if(isSameMonth(d, now)){ month.sum += s.total; month.count++; }
+    if(isSameDay(d, now)){ today.sum += s.total; today.count++; }
+  });
+
+  document.getElementById('statToday').textContent = '₹'+fmt(today.sum);
+  document.getElementById('statTodayCount').textContent = today.count+' bill'+(today.count===1?'':'s');
+  document.getElementById('statMonth').textContent = '₹'+fmt(month.sum);
+  document.getElementById('statMonthCount').textContent = month.count+' bill'+(month.count===1?'':'s');
+  document.getElementById('statYear').textContent = '₹'+fmt(year.sum);
+  document.getElementById('statYearCount').textContent = year.count+' bill'+(year.count===1?'':'s');
+  document.getElementById('statAll').textContent = '₹'+fmt(all.sum);
+  document.getElementById('statAllCount').textContent = all.count+' bill'+(all.count===1?'':'s')+' total';
+
+  /* filter sales by the selected period, for ranking + records list */
+  const filteredSales = getFilteredSales();
+  const {label} = getPeriodRange();
+  const periodTotal = filteredSales.reduce((sum,s)=>sum+s.total, 0);
+  const avgBill = filteredSales.length ? periodTotal/filteredSales.length : 0;
+  document.getElementById('periodSummary').textContent =
+    filteredSales.length === 0
+      ? `No sales recorded for ${label}.`
+      : `Total ₹${fmt(periodTotal)} across ${filteredSales.length} bill${filteredSales.length===1?'':'s'} for ${label} — average ₹${fmt(avgBill)} per bill.`;
+
+  const itemAgg = {}; // name -> {qty, revenue, unit, billCount}
+  const customerAgg = {}; // name -> {revenue, billCount}
+  filteredSales.forEach(s=>{
+    (s.items||[]).forEach(it=>{
+      const key = it.name.trim().toLowerCase();
+      if(!itemAgg[key]) itemAgg[key] = {name: it.name, qty:0, revenue:0, unit: it.unit, billSet: new Set()};
+      itemAgg[key].qty += Number(it.qty)||0;
+      itemAgg[key].revenue += Number(it.amount)||0;
+      itemAgg[key].billSet.add(s.id);
+    });
+    const custName = (s.customerName||'').trim();
+    if(custName){
+      const ckey = custName.toLowerCase();
+      if(!customerAgg[ckey]) customerAgg[ckey] = {name: custName, revenue:0, billCount:0};
+      customerAgg[ckey].revenue += Number(s.total)||0;
+      customerAgg[ckey].billCount += 1;
+    }
+  });
+  Object.values(itemAgg).forEach(it=>{ it.billCount = it.billSet.size; delete it.billSet; });
+
+  /* item ranking, sortable by revenue / quantity / number of bills bought in */
+  const sortKey = document.getElementById('rankSort').value;
+  const metricOf = (it) => sortKey==='qty' ? it.qty : sortKey==='bills' ? it.billCount : it.revenue;
+  const ranked = Object.values(itemAgg).sort((a,b)=> metricOf(b)-metricOf(a));
+  const rankWrap = document.getElementById('rankList');
+  if(ranked.length===0){
+    rankWrap.innerHTML = `<div class="empty-state">No sales in this range yet.</div>`;
+  } else {
+    const maxVal = metricOf(ranked[0]) || 1;
+    rankWrap.innerHTML = ranked.slice(0,10).map((it,idx)=>`
+      <div class="rank-row">
+        <span class="rank-num">${idx+1}</span>
+        <span class="rank-name">${escapeHtml(it.name)}</span>
+        <span class="rank-qty">${fmt(it.qty).replace(/\.00$/,'')} ${escapeHtml(it.unit)} · ${it.billCount} bill${it.billCount===1?'':'s'}</span>
+        <span class="rank-rev">₹${fmt(it.revenue)}</span>
+        <div class="rank-bar-wrap"><div class="rank-bar" style="width:${(metricOf(it)/maxVal*100).toFixed(1)}%"></div></div>
+      </div>
+    `).join('');
+  }
+
+  /* top customers */
+  const customerRanked = Object.values(customerAgg).sort((a,b)=>b.revenue-a.revenue);
+  const custWrap = document.getElementById('customerRankList');
+  if(customerRanked.length===0){
+    custWrap.innerHTML = `<div class="empty-state">No named customers in this range yet.</div>`;
+  } else {
+    const maxCustRev = customerRanked[0].revenue || 1;
+    custWrap.innerHTML = customerRanked.slice(0,10).map((c,idx)=>`
+      <div class="rank-row">
+        <span class="rank-num">${idx+1}</span>
+        <span class="rank-name">${escapeHtml(c.name)}</span>
+        <span class="rank-qty">${c.billCount} bill${c.billCount===1?'':'s'}</span>
+        <span class="rank-rev">₹${fmt(c.revenue)}</span>
+        <div class="rank-bar-wrap"><div class="rank-bar" style="width:${(c.revenue/maxCustRev*100).toFixed(1)}%"></div></div>
+      </div>
+    `).join('');
+  }
+
+  /* history (also respects the selected range) */
+  const histWrap = document.getElementById('historyList');
+  const historySub = document.getElementById('historySub');
+  if(filteredSales.length===0){
+    histWrap.innerHTML = `<div class="empty-state">Nothing recorded in this range.</div>`;
+    historySub.textContent = `Bills in the selected range, most recent first.`;
+  } else {
+    const sorted = [...filteredSales].sort((a,b)=> new Date(b.dateISO)-new Date(a.dateISO));
+    const shown = sorted.slice(0,30);
+    historySub.textContent = shown.length < sorted.length
+      ? `Showing the most recent ${shown.length} of ${sorted.length} bills in this range.`
+      : `${sorted.length} bill${sorted.length===1?'':'s'} in this range, most recent first.`;
+    histWrap.innerHTML = shown.map(s=>{
+      const d = new Date(s.dateISO);
+      const dateStr = d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+      return `
+      <div class="history-row">
+        <span>${escapeHtml(s.customerName || 'Walk-in customer')}<br><span class="history-date">${(s.items||[]).length} item(s)</span></span>
+        <span class="history-date">${dateStr}</span>
+        <span class="history-amt">₹${fmt(s.total)}</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+/* ---------- BILL NUMBER AUTO-SUGGEST ---------- */
+function loadBillCounter(){
+  const n = parseInt(localStorage.getItem(BILL_COUNTER_KEY), 10);
+  return isNaN(n) ? 0 : n;
+}
+function saveBillCounter(n){
+  try{ localStorage.setItem(BILL_COUNTER_KEY, String(n)); }catch(e){ /* ignore */ }
+}
+function formatBillNo(n){
+  return String(n).padStart(5,'0');
+}
+function suggestNextBillNo(){
+  return formatBillNo(loadBillCounter()+1);
+}
+function applySuggestedBillNo(){
+  document.getElementById('billNo').value = suggestNextBillNo();
+}
+
+/* ---------- SHOP PROFILE (remembers shop name/details on this device) ---------- */
+function saveShopProfile(){
+  const shopName = document.getElementById('shopName').value;
+  const shopDetails = document.getElementById('shopDetails').value;
+  try{
+    localStorage.setItem(SHOP_PROFILE_KEY, JSON.stringify({shopName, shopDetails}));
+  }catch(e){ /* ignore */ }
+}
+
+function loadShopProfile(){
+  try{
+    const raw = localStorage.getItem(SHOP_PROFILE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    if(data.shopName) document.getElementById('shopName').value = data.shopName;
+    if(data.shopDetails) document.getElementById('shopDetails').value = data.shopDetails;
+  }catch(e){ /* ignore */ }
+}
+
+/* ---------- INIT ---------- */
+document.getElementById('billDate').valueAsDate = new Date();
+loadShopProfile();
+if(!document.getElementById('billNo').value){ applySuggestedBillNo(); }
+['shopName','shopDetails','billNo','billDate','customerName','customerNote'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', render);
+});
+document.getElementById('shopName').addEventListener('input', saveShopProfile);
+document.getElementById('shopDetails').addEventListener('input', saveShopProfile);
+renderItemList();
+render();
+updateAdVisibility();
+updateTrackingStatus();
+</script>
+
+<footer class="site-footer">
+  <h2>About Easy Bill Maker</h2>
+  <p>Easy Bill Maker is a free billing and invoicing tool built for small shopkeepers, retailers, and freelancers who need to create clean, professional bills quickly — without expensive software or a learning curve. Enter item names, quantities, and unit prices (per kg, per litre, or per piece), and the app calculates totals, applies discounts or tax, and produces a print-ready or PDF bill in seconds.</p>
+
+  <h3>Who is this for?</h3>
+  <p>Small retail shops, grocery and provision stores, home-based businesses, and freelancers who currently write bills by hand or use spreadsheets and want something faster, without switching to complex accounting software.</p>
+
+  <h3>Key features</h3>
+  <ul>
+    <li>Instant bill calculation with support for per-kg, per-litre, and per-piece pricing</li>
+    <li>Print any bill or save it as a PDF</li>
+    <li>Share bills as a photo or PDF directly through WhatsApp</li>
+    <li>Automatic, editable bill numbering</li>
+    <li>"My Bills" keeps a copy of every bill you create, free of charge</li>
+    <li>An optional Pro plan adds automatic sales tracking, exportable reports (Excel, PDF, Word), and item/customer popularity insights</li>
+  </ul>
+
+  <h2>Frequently asked questions</h2>
+  <h3>Is Easy Bill Maker free to use?</h3>
+  <p>Yes. Creating, printing, and sharing bills, along with the "My Bills" record-keeping feature, is completely free. A separate Pro subscription unlocks sales analytics and reporting for shop owners who want deeper insight into their business.</p>
+
+  <h3>Where is my data stored?</h3>
+  <p>All bill and shop information is stored locally in your own browser, on your own device. Nothing is uploaded to a server, and your data stays private to that device.</p>
+
+  <h3>Can I use this on my phone?</h3>
+  <p>Yes. Easy Bill Maker works in any modern mobile or desktop browser and can be added to your phone's home screen like an app.</p>
+
+  <h3>Do I need an internet connection?</h3>
+  <p>You'll need an internet connection to load the app initially. Once loaded, creating and calculating bills doesn't depend on a constant connection.</p>
+
+  <div class="footer-links">
+    <a href="privacy-policy.html">Privacy Policy</a> · Contact: mdtoufikhassan46@gmail.com
+  </div>
+</footer>
+
+</body>
+</html>
