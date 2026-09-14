@@ -1039,6 +1039,18 @@ function escapeHtml(s){
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// Sets a <input type="date"> to today's date using LOCAL time zone components.
+// (input.valueAsDate = new Date() is timezone-unsafe — it uses UTC day boundaries,
+// which silently dates a bill "yesterday" in India during the early morning hours
+// before UTC has rolled over to the new day.)
+function setDateInputToToday(elId){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  document.getElementById(elId).value = `${yyyy}-${mm}-${dd}`;
+}
+
 function showView(view){
   document.getElementById('viewBill').classList.toggle('visible', view==='bill');
   document.getElementById('viewDash').classList.toggle('visible', view==='dash');
@@ -1477,7 +1489,7 @@ function clearAll(){
   document.getElementById('discountType').value = 'amount';
   if(document.getElementById('paymentStatus')) document.getElementById('paymentStatus').value = 'full';
   loadShopProfile();
-  document.getElementById('billDate').valueAsDate = new Date();
+  setDateInputToToday('billDate');
   applySuggestedBillNo();
   currentBillSaved = false;
   renderItemList();
@@ -1862,7 +1874,7 @@ function resetApp(){
   document.querySelectorAll('#viewBill input').forEach(i=>i.value='');
   document.getElementById('discountType').value = 'amount';
   if(document.getElementById('paymentStatus')) document.getElementById('paymentStatus').value = 'full';
-  document.getElementById('billDate').valueAsDate = new Date();
+  setDateInputToToday('billDate');
   applySuggestedBillNo();
   document.getElementById('discount').value='';
   document.getElementById('taxPct').value='';
@@ -2085,7 +2097,7 @@ function loadShopProfile(){
 }
 
 /* ---------- INIT ---------- */
-document.getElementById('billDate').valueAsDate = new Date();
+setDateInputToToday('billDate');
 loadShopProfile();
 if(!document.getElementById('billNo').value){ applySuggestedBillNo(); }
 ['shopName','shopDetails','billNo','billDate','customerName','customerNote'].forEach(id=>{
