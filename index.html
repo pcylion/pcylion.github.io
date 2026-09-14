@@ -435,6 +435,44 @@
   }
   .archive-row:last-child{border-bottom:none;}
 
+  .due-row{
+    padding:12px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .due-row:last-child{border-bottom:none;}
+  .due-row-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .due-row .name{font-size:14px; font-weight:600;}
+  .due-row .meta{font-size:12px; color:var(--ink-soft);}
+  .due-row .amt{font-size:16px; font-weight:700; color:var(--danger); font-variant-numeric:tabular-nums;}
+  .due-row .actions{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;}
+  .due-row .actions button{
+    font-size:12.5px;
+    padding:6px 12px;
+  }
+  .due-pay-form{
+    display:none;
+    margin-top:10px;
+    padding-top:10px;
+    border-top:1px dashed var(--line);
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .due-pay-form.visible{display:flex;}
+  .due-pay-form input{
+    width:120px;
+    padding:7px 9px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    font-size:13px;
+  }
+
   .empty-state{
     text-align:center;
     padding:40px 20px;
@@ -476,6 +514,14 @@
     vertical-align:middle;
   }
   .lock-error{color:var(--danger); font-size:12.5px; margin-top:10px; min-height:16px;}
+
+  .sub-note{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    line-height:1.5;
+    margin:4px 0 0;
+  }
+  .sub-note a{ color:var(--accent); }
   .lock-divider{
     display:flex; align-items:center; gap:10px;
     color:var(--ink-soft); font-size:12px;
@@ -559,6 +605,7 @@
   <div class="nav-toggle">
     <button id="navBill" class="active" onclick="showView('bill')">New Bill</button>
     <button id="navArchive" onclick="showView('archive')">My Bills</button>
+    <button id="navDues" onclick="showView('dues')">Due / Credit</button>
     <button id="navDash" onclick="showView('dash')">Sales Dashboard</button>
   </div>
 </div>
@@ -677,6 +724,28 @@
         <input id="footerNote" placeholder="e.g. Thank you for your business!" oninput="render()">
       </div>
     </div>
+
+    <div class="panel" id="paymentStatusPanel">
+      <h2>Payment status <span class="pro-badge">PRO</span></h2>
+      <div id="paymentStatusLocked" style="display:none;">
+        <p class="sub-note">Track partial payments and outstanding dues (khata) automatically. <a href="#" onclick="showView('dash'); return false;">Unlock Pro from the Sales Dashboard tab</a> to use this.</p>
+      </div>
+      <div id="paymentStatusFields" style="display:none;">
+        <div class="field">
+          <label for="paymentStatus">Has the customer paid in full?</label>
+          <select id="paymentStatus" onchange="render()">
+            <option value="full">Fully paid</option>
+            <option value="partial">Partially paid</option>
+            <option value="none">Not paid yet</option>
+          </select>
+        </div>
+        <div class="field" id="amountPaidField" style="display:none;">
+          <label for="amountPaidNow">Amount paid now (₹)</label>
+          <input id="amountPaidNow" type="number" step="any" placeholder="0" oninput="render()">
+        </div>
+        <p class="sub-note" id="dueSummaryNote"></p>
+      </div>
+    </div>
   </div>
 
   <!-- RIGHT: PREVIEW -->
@@ -731,7 +800,7 @@
     <!-- RESET APP — visible to everyone, Pro or not -->
     <div class="dash-panel">
       <h2>Reset app</h2>
-      <p class="sub">Wipes everything saved on this device — shop name/address, all bills in My Bills, all Pro sales records, bill number counter, and Pro unlock. Use this before handing the device to someone else, or to start completely fresh.</p>
+      <p class="sub">Wipes everything saved on this device — shop name/address, all bills in My Bills, all Pro sales records, due/credit records, bill number counter, and Pro unlock. Use this before handing the device to someone else, or to start completely fresh.</p>
       <div id="resetStep1">
         <button class="btn-secondary" style="color:var(--danger); border-color:var(--danger);" onclick="showResetConfirm()">⚠ Reset app (clear everything)</button>
       </div>
@@ -847,6 +916,41 @@
   </div>
 </div>
 
+<!-- ================= DUE / CREDIT VIEW — Pro only ================= -->
+<div id="viewDues" class="app">
+  <div style="grid-column:1/-1;">
+
+    <div id="duesLocked" class="lock-screen" style="display:none;">
+      <div class="lock-icon">🔒</div>
+      <h2>Due / Credit Tracking <span class="pro-badge">PRO</span></h2>
+      <p>Track partial payments, outstanding dues, and send payment reminders — automatically. This is a Pro feature.</p>
+      <button class="btn-add" onclick="showView('dash')">Go to Sales Dashboard to unlock Pro</button>
+    </div>
+
+    <div id="duesContent" style="display:none;">
+      <div class="dash-grid" style="grid-template-columns:repeat(2,1fr);">
+        <div class="stat-card">
+          <p class="stat-label">Total outstanding due</p>
+          <p class="stat-amt" id="statTotalDue">₹0</p>
+          <p class="stat-sub" id="statDueCustomers">0 customers</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-label">Collected so far</p>
+          <p class="stat-amt" id="statCollected">₹0</p>
+          <p class="stat-sub" id="statCollectedCount">across all dues</p>
+        </div>
+      </div>
+
+      <div class="dash-panel">
+        <h2>Customers with dues</h2>
+        <p class="sub">Tap "Record payment" when a customer pays some or all of what they owe. Tap "Remind" to send a one-tap payment reminder.</p>
+        <div id="duesList"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <script>
 let items = [];
 const SALES_KEY = 'easyBillMaker_sales_v1';
@@ -854,6 +958,7 @@ const PRO_KEY = 'easyBillMaker_pro_v1';
 const SHOP_PROFILE_KEY = 'easyBillMaker_shopProfile_v1';
 const BILL_COUNTER_KEY = 'easyBillMaker_billCounter_v1';
 const ARCHIVE_KEY = 'easyBillMaker_billArchive_v1';
+const DUES_KEY = 'easyBillMaker_dues_v1';
 // Change this secret before selling licenses — it's what your key generator must match.
 const LICENSE_SECRET = 'EBM-PCYLION-2026';
 
@@ -938,11 +1043,171 @@ function showView(view){
   document.getElementById('viewBill').classList.toggle('visible', view==='bill');
   document.getElementById('viewDash').classList.toggle('visible', view==='dash');
   document.getElementById('viewArchive').classList.toggle('visible', view==='archive');
+  document.getElementById('viewDues').classList.toggle('visible', view==='dues');
   document.getElementById('navBill').classList.toggle('active', view==='bill');
   document.getElementById('navDash').classList.toggle('active', view==='dash');
   document.getElementById('navArchive').classList.toggle('active', view==='archive');
+  document.getElementById('navDues').classList.toggle('active', view==='dues');
   if(view==='dash') renderDashboard();
   if(view==='archive') renderArchive();
+  if(view==='dues') renderDues();
+}
+
+/* ---------- DUE / CREDIT TRACKING (Pro-only) ---------- */
+function loadDues(){
+  try{
+    const raw = localStorage.getItem(DUES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+function saveDues(dues){
+  try{ localStorage.setItem(DUES_KEY, JSON.stringify(dues)); }
+  catch(e){ console.error('Could not save dues', e); }
+}
+
+function getPaymentInfo(grandTotal){
+  const statusEl = document.getElementById('paymentStatus');
+  const status = statusEl ? statusEl.value : 'full';
+  let paidNow = 0;
+  if(status === 'full') paidNow = grandTotal;
+  else if(status === 'partial') paidNow = parseFloat(document.getElementById('amountPaidNow').value) || 0;
+  const due = Math.max(0, grandTotal - paidNow);
+  return {status, paidNow, due};
+}
+
+function updatePaymentPanelVisibility(){
+  const locked = document.getElementById('paymentStatusLocked');
+  const fields = document.getElementById('paymentStatusFields');
+  if(!locked || !fields) return;
+  if(isPro()){
+    locked.style.display = 'none';
+    fields.style.display = 'block';
+  } else {
+    locked.style.display = 'block';
+    fields.style.display = 'none';
+  }
+}
+
+function upsertDueFromBill(key, name, phone, billNo, billTotal, paidNow, dueAdded){
+  if(!key || dueAdded <= 0) return;
+  const dues = loadDues();
+  let entry = dues.find(d => d.key === key);
+  if(!entry){
+    entry = {key, name, phone, totalDue:0, history:[]};
+    dues.push(entry);
+  }
+  entry.name = name || entry.name;
+  entry.phone = phone || entry.phone;
+  entry.totalDue = (entry.totalDue||0) + dueAdded;
+  entry.history.push({type:'bill', billNo, billTotal, paidNow, dueAdded, dateISO: new Date().toISOString()});
+  saveDues(dues);
+}
+
+function recordDuePayment(key, amount){
+  if(isNaN(amount) || amount<=0) return;
+  const dues = loadDues();
+  const entry = dues.find(d=>d.key===key);
+  if(!entry) return;
+  entry.totalDue = Math.max(0, entry.totalDue - amount);
+  entry.history.push({type:'payment', amount, dateISO: new Date().toISOString()});
+  saveDues(dues);
+  renderDues();
+}
+
+let currentDuesSorted = [];
+
+function renderDues(){
+  const lockEl = document.getElementById('duesLocked');
+  const contentEl = document.getElementById('duesContent');
+  if(!isPro()){
+    lockEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    return;
+  }
+  lockEl.style.display = 'none';
+  contentEl.style.display = 'block';
+
+  const allDues = loadDues();
+  const outstanding = allDues.filter(d => d.totalDue > 0.004);
+  const totalDue = outstanding.reduce((s,d)=>s+d.totalDue, 0);
+  const totalCollected = allDues.reduce((s,d)=>{
+    const fromPayments = (d.history||[]).filter(h=>h.type==='payment').reduce((a,h)=>a+h.amount,0);
+    const fromBills = (d.history||[]).filter(h=>h.type==='bill').reduce((a,h)=>a+h.paidNow,0);
+    return s + fromPayments + fromBills;
+  }, 0);
+
+  document.getElementById('statTotalDue').textContent = '₹'+fmt(totalDue);
+  document.getElementById('statDueCustomers').textContent = outstanding.length+' customer'+(outstanding.length===1?'':'s');
+  document.getElementById('statCollected').textContent = '₹'+fmt(totalCollected);
+
+  const wrap = document.getElementById('duesList');
+  if(outstanding.length===0){
+    wrap.innerHTML = `<div class="empty-state">No outstanding dues. When a bill isn't marked "Fully paid," it'll show up here.</div>`;
+    currentDuesSorted = [];
+    return;
+  }
+
+  const sorted = [...outstanding].sort((a,b)=>b.totalDue - a.totalDue);
+  currentDuesSorted = sorted;
+
+  wrap.innerHTML = sorted.map((d, idx)=>{
+    const lastBill = [...(d.history||[])].reverse().find(h=>h.type==='bill');
+    const lastDate = lastBill ? new Date(lastBill.dateISO).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '';
+    return `
+    <div class="due-row">
+      <div class="due-row-top">
+        <div>
+          <div class="name">${escapeHtml(d.name || 'Customer')}</div>
+          <div class="meta">${d.phone ? escapeHtml(d.phone) : 'No phone on file'}${lastDate ? ' · last bill '+lastDate : ''}</div>
+        </div>
+        <div class="amt">₹${fmt(d.totalDue)}</div>
+      </div>
+      <div class="actions">
+        <button class="btn-secondary" onclick="toggleDuePayForm(${idx})">💰 Record payment</button>
+        ${d.phone ? `
+        <button class="btn-secondary" onclick="sendDueReminderWhatsApp(${idx})">📲 Remind — WhatsApp</button>
+        <button class="btn-secondary" onclick="sendDueReminderSMS(${idx})">✉️ Remind — SMS</button>` : ''}
+      </div>
+      <div class="due-pay-form" id="duePayForm-${idx}">
+        <input type="number" step="any" placeholder="Amount paid now" id="duePayAmt-${idx}">
+        <button class="btn-add" onclick="submitDuePayment(${idx})">Save payment</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleDuePayForm(idx){
+  document.getElementById('duePayForm-'+idx).classList.toggle('visible');
+}
+
+function submitDuePayment(idx){
+  const entry = currentDuesSorted[idx];
+  if(!entry) return;
+  const amtInput = document.getElementById('duePayAmt-'+idx);
+  const amt = parseFloat(amtInput.value);
+  if(isNaN(amt) || amt<=0){ alert('Enter a valid amount.'); return; }
+  recordDuePayment(entry.key, amt);
+}
+
+function dueReminderPhone(entry){
+  const digits = (entry.phone||'').replace(/[^0-9]/g,'');
+  return digits.length===10 ? '91'+digits : digits;
+}
+
+function sendDueReminderWhatsApp(idx){
+  const entry = currentDuesSorted[idx];
+  if(!entry || !entry.phone) return;
+  const shopName = document.getElementById('shopName').value.trim() || 'our shop';
+  const msg = `Dear ${entry.name || 'Customer'}, this is a gentle reminder that your outstanding balance at ${shopName} is Rs.${fmt(entry.totalDue)}. We would appreciate it if you could clear this at your earliest convenience. Thank you for your continued business.`;
+  window.open(`https://wa.me/${dueReminderPhone(entry)}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function sendDueReminderSMS(idx){
+  const entry = currentDuesSorted[idx];
+  if(!entry || !entry.phone) return;
+  const shopName = document.getElementById('shopName').value.trim() || 'our shop';
+  const msg = `Dear ${entry.name || 'Customer'}, this is a reminder that your outstanding balance at ${shopName} is Rs.${fmt(entry.totalDue)}. Kindly clear it at your earliest convenience. Thank you.`;
+  window.location.href = `sms:${dueReminderPhone(entry)}?body=${encodeURIComponent(msg)}`;
 }
 
 function getFilteredSales(){
@@ -1123,6 +1388,18 @@ function render(){
   const taxAmt = subtotal * (f.taxPct/100);
   const grandTotal = subtotal - discAmt + taxAmt;
 
+  updatePaymentPanelVisibility();
+  const paymentStatusEl = document.getElementById('paymentStatus');
+  const statusVal = paymentStatusEl ? paymentStatusEl.value : 'full';
+  document.getElementById('amountPaidField').style.display = (statusVal === 'partial') ? 'block' : 'none';
+  const pay = getPaymentInfo(grandTotal);
+  const dueNote = document.getElementById('dueSummaryNote');
+  if(dueNote){
+    dueNote.textContent = statusVal === 'full'
+      ? 'Marked as fully paid — no due recorded.'
+      : `Paid now: ₹${fmt(pay.paidNow)} · Balance due: ₹${fmt(pay.due)}`;
+  }
+
   let rowsHtml = '';
   if(items.length===0){
     rowsHtml = `<tr><td colspan="4" style="text-align:center; color:var(--ink-soft); padding:30px 0;">No items added yet</td></tr>`;
@@ -1136,6 +1413,8 @@ function render(){
       </tr>
     `).join('');
   }
+
+  const showPaymentLines = isPro() && statusVal !== 'full' && items.length > 0;
 
   document.getElementById('bill').innerHTML = `
     <div class="bill-head">
@@ -1181,6 +1460,10 @@ function render(){
       ${f.discount ? `<div class="line"><span>Discount${f.discountType==='percent' ? ' ('+f.discount+'% off)' : ''}</span><span>− ₹${fmt(discAmt)}</span></div>` : ''}
       ${f.taxPct ? `<div class="line"><span>Tax (${f.taxPct}%)</span><span>+ ₹${fmt(taxAmt)}</span></div>` : ''}
       <div class="line grand"><span>Total</span><span class="amt">₹${fmt(grandTotal)}</span></div>
+      ${showPaymentLines ? `
+      <div class="line"><span>Amount Paid</span><span>₹${fmt(pay.paidNow)}</span></div>
+      <div class="line grand" style="border-top:1px solid var(--line); margin-top:2px; padding-top:8px;"><span>Balance Due</span><span style="color:var(--danger);">₹${fmt(pay.due)}</span></div>
+      ` : ''}
     </div>
 
     ${f.footerNote ? `<div class="bill-footer">${escapeHtml(f.footerNote)}</div>` : ''}
@@ -1192,6 +1475,7 @@ function clearAll(){
   items = [];
   document.querySelectorAll('#viewBill input').forEach(i=>i.value='');
   document.getElementById('discountType').value = 'amount';
+  if(document.getElementById('paymentStatus')) document.getElementById('paymentStatus').value = 'full';
   loadShopProfile();
   document.getElementById('billDate').valueAsDate = new Date();
   applySuggestedBillNo();
@@ -1221,6 +1505,22 @@ function finalizeBill(){
     // automatic sales analytics recording is Pro-only
     if(isPro()){
       recordSaleSilent(f);
+
+      // Due / credit tracking — also Pro-only
+      const subtotal = items.reduce((s,it)=> s + it.qty*it.price, 0);
+      const discAmt = computeDiscountAmount(subtotal, f);
+      const taxAmt = subtotal * (f.taxPct/100);
+      const grandTotal = subtotal - discAmt + taxAmt;
+      const pay = getPaymentInfo(grandTotal);
+      if(pay.due > 0){
+        const rawPhone = document.getElementById('customerPhone').value.trim();
+        const cleanedPhone = cleanPhoneNumber();
+        const key = cleanedPhone || (f.customerName ? ('name:'+f.customerName.trim().toLowerCase()) : null);
+        if(key){
+          upsertDueFromBill(key, f.customerName || 'Walk-in customer', cleanedPhone ? rawPhone : null, f.billNo, grandTotal, pay.paidNow, pay.due);
+        }
+      }
+
       flashSaveNote('✔ Saved to My Bills and your Pro sales records.');
     } else {
       flashSaveNote('✔ Saved to My Bills.');
@@ -1276,6 +1576,12 @@ function buildBillText(){
   if(f.discount) lines.push(`Discount${f.discountType==='percent' ? ' ('+f.discount+'% off)' : ''}: -₹`+fmt(discAmt));
   if(f.taxPct) lines.push(`Tax (${f.taxPct}%): +₹`+fmt(taxAmt));
   lines.push('Total: ₹'+fmt(grandTotal));
+  const statusEl = document.getElementById('paymentStatus');
+  if(isPro() && statusEl && statusEl.value !== 'full'){
+    const pay = getPaymentInfo(grandTotal);
+    lines.push('Amount Paid: ₹'+fmt(pay.paidNow));
+    lines.push('Balance Due: ₹'+fmt(pay.due));
+  }
   if(f.footerNote){ lines.push(''); lines.push(f.footerNote); }
 
   return lines.join('\n');
@@ -1450,6 +1756,7 @@ function saveBillToArchive(f){
   const discAmt = computeDiscountAmount(subtotal, f);
   const taxAmt = subtotal * (f.taxPct/100);
   const grandTotal = subtotal - discAmt + taxAmt;
+  const paymentStatusEl = document.getElementById('paymentStatus');
 
   const archive = loadArchive();
   archive.push({
@@ -1466,6 +1773,8 @@ function saveBillToArchive(f){
     discountType: f.discountType,
     taxPct: f.taxPct,
     footerNote: f.footerNote,
+    paymentStatus: paymentStatusEl ? paymentStatusEl.value : 'full',
+    amountPaidNow: document.getElementById('amountPaidNow') ? document.getElementById('amountPaidNow').value : '',
     total: grandTotal
   });
   saveArchive(archive);
@@ -1507,6 +1816,8 @@ function reopenArchivedBill(id){
   document.getElementById('discountType').value = b.discountType || 'amount';
   document.getElementById('taxPct').value = b.taxPct || '';
   document.getElementById('footerNote').value = b.footerNote || '';
+  if(document.getElementById('paymentStatus')) document.getElementById('paymentStatus').value = b.paymentStatus || 'full';
+  if(document.getElementById('amountPaidNow')) document.getElementById('amountPaidNow').value = b.amountPaidNow || '';
 
   items = (b.items || []).map(it => ({...it}));
   currentBillSaved = true; // this exact bill is already archived — don't re-archive until it's edited
@@ -1544,11 +1855,13 @@ function resetApp(){
   localStorage.removeItem(SHOP_PROFILE_KEY);
   localStorage.removeItem(BILL_COUNTER_KEY);
   localStorage.removeItem(ARCHIVE_KEY);
+  localStorage.removeItem(DUES_KEY);
 
   items = [];
   currentBillSaved = false;
   document.querySelectorAll('#viewBill input').forEach(i=>i.value='');
   document.getElementById('discountType').value = 'amount';
+  if(document.getElementById('paymentStatus')) document.getElementById('paymentStatus').value = 'full';
   document.getElementById('billDate').valueAsDate = new Date();
   applySuggestedBillNo();
   document.getElementById('discount').value='';
