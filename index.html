@@ -14,6 +14,10 @@
 <!-- Used to turn the bill preview into a shareable photo/PDF, and to export sales-record PDFs -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Firebase: login accounts + cloud database, so data syncs across devices -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -545,6 +549,78 @@
     letter-spacing:.04em;
   }
 
+  /* ---- AUTH SCREEN (login / sign up) ---- */
+  .auth-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .auth-card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:32px 28px;
+    max-width:380px;
+    width:100%;
+  }
+  .auth-card h1{
+    font-family:'Source Serif 4',serif;
+    font-weight:700;
+    font-size:24px;
+    text-align:center;
+    margin:0 0 4px;
+  }
+  .auth-card .tagline{
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:13.5px;
+    margin:0 0 24px;
+  }
+  .auth-toggle{
+    display:flex;
+    background:var(--paper-alt);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:3px;
+    margin-bottom:20px;
+  }
+  .auth-toggle button{
+    flex:1;
+    background:none;
+    border:none;
+    padding:9px 0;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    border-radius:6px;
+    cursor:pointer;
+  }
+  .auth-toggle button.active{
+    background:var(--accent);
+    color:#fff;
+  }
+  .auth-error{
+    color:var(--danger);
+    font-size:12.5px;
+    margin:0 0 12px;
+    min-height:16px;
+    text-align:center;
+  }
+  .auth-note{
+    font-size:12px;
+    color:var(--ink-soft);
+    text-align:center;
+    margin-top:14px;
+  }
+  .auth-note a{ color:var(--accent); cursor:pointer; }
+  .auth-loading{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--ink-soft);
+  }
+
   /* ---- SITE FOOTER (About / FAQ) ---- */
   .site-footer{
     max-width:900px;
@@ -597,6 +673,37 @@
 </head>
 <body>
 
+<!-- ================= AUTH SCREEN (shown when logged out) ================= -->
+<div id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <h1>Easy Bill Maker</h1>
+    <p class="tagline">Fast Billing, Fast Growing.</p>
+
+    <div class="auth-toggle">
+      <button id="authTabLogin" class="active" onclick="switchAuthTab('login')">Log In</button>
+      <button id="authTabSignup" onclick="switchAuthTab('signup')">Create Account</button>
+    </div>
+
+    <div class="field">
+      <label for="authEmail">Email</label>
+      <input id="authEmail" type="email" placeholder="you@example.com">
+    </div>
+    <div class="field">
+      <label for="authPassword">Password</label>
+      <input id="authPassword" type="password" placeholder="At least 6 characters">
+    </div>
+
+    <p class="auth-error" id="authError"></p>
+
+    <button class="btn-add" style="width:100%;" id="authSubmitBtn" onclick="submitAuthForm()">Log In</button>
+
+    <p class="auth-note" id="authForgotNote"><a onclick="handleForgotPassword()">Forgot password?</a></p>
+  </div>
+</div>
+
+<!-- ================= MAIN APP (shown when logged in) ================= -->
+<div id="appRoot" style="display:none;">
+
 <div class="topbar">
   <div>
     <h1>Easy Bill Maker</h1>
@@ -607,6 +714,7 @@
     <button id="navArchive" onclick="showView('archive')">My Bills</button>
     <button id="navDues" onclick="showView('dues')">Due / Credit</button>
     <button id="navDash" onclick="showView('dash')">Sales Dashboard</button>
+    <button id="navLogout" onclick="handleLogout()">Log Out</button>
   </div>
 </div>
 
@@ -620,7 +728,7 @@
        data-ad-format="auto"
        data-full-width-responsive="true"></ins>
 </div>
-<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+<!-- Ad is "pushed" after login (see initAppUI) instead of immediately, since this banner is hidden behind the login screen until then. -->
 
 <!-- ================= BILL MAKER VIEW ================= -->
 <div id="viewBill" class="app billmaker visible">
@@ -800,7 +908,7 @@
     <!-- RESET APP — visible to everyone, Pro or not -->
     <div class="dash-panel">
       <h2>Reset app</h2>
-      <p class="sub">Wipes everything saved on this device — shop name/address, all bills in My Bills, all Pro sales records, due/credit records, bill number counter, and Pro unlock. Use this before handing the device to someone else, or to start completely fresh.</p>
+      <p class="sub">Wipes everything saved in your account — shop name/address, all bills in My Bills, all Pro sales records, due/credit records, bill number counter, and Pro unlock. This affects your account everywhere it's logged in, not just this device. Use this to start completely fresh.</p>
       <div id="resetStep1">
         <button class="btn-secondary" style="color:var(--danger); border-color:var(--danger);" onclick="showResetConfirm()">⚠ Reset app (clear everything)</button>
       </div>
@@ -951,6 +1059,8 @@
   </div>
 </div>
 
+</div><!-- /appRoot -->
+
 <script>
 let items = [];
 const SALES_KEY = 'easyBillMaker_sales_v1';
@@ -959,6 +1069,154 @@ const SHOP_PROFILE_KEY = 'easyBillMaker_shopProfile_v1';
 const BILL_COUNTER_KEY = 'easyBillMaker_billCounter_v1';
 const ARCHIVE_KEY = 'easyBillMaker_billArchive_v1';
 const DUES_KEY = 'easyBillMaker_dues_v1';
+
+/* ================= FIREBASE: LOGIN + CLOUD SYNC ================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyAwcT4yFdKk09rn_ee0p6qZDMAPMJwEjx0",
+  authDomain: "easy-bill-maker.firebaseapp.com",
+  projectId: "easy-bill-maker",
+  storageBucket: "easy-bill-maker.firebasestorage.app",
+  messagingSenderId: "497434553090",
+  appId: "1:497434553090:web:6285ce14e1b00025ba701b"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+db.enablePersistence().catch(e=>{
+  // fails harmlessly if multiple tabs are open, or the browser doesn't support it
+  console.warn('Offline persistence not enabled:', e.code);
+});
+
+// One in-memory cache holding everything for the logged-in user. All the
+// existing loadX/saveX functions below read and write THIS object instead of
+// localStorage — so the rest of the app (render, dashboards, etc.) doesn't
+// need to change at all. Every save also queues a debounced push to Firestore.
+let cloudCache = {
+  shopProfile: {shopName:'', shopDetails:''},
+  billCounter: 0,
+  pro: null,
+  sales: [],
+  archive: [],
+  dues: []
+};
+let currentUid = null;
+let cloudSaveTimer = null;
+
+function queueCloudSave(){
+  if(!currentUid) return;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = setTimeout(()=>{
+    db.collection('users').doc(currentUid).set(cloudCache, {merge:false})
+      .catch(e=>console.error('Cloud save failed', e));
+  }, 600);
+}
+
+async function loadCloudDataForUser(uid){
+  currentUid = uid;
+  const docRef = db.collection('users').doc(uid);
+  const snap = await docRef.get();
+  if(snap.exists){
+    const data = snap.data();
+    cloudCache = {
+      shopProfile: data.shopProfile || {shopName:'', shopDetails:''},
+      billCounter: data.billCounter || 0,
+      pro: data.pro || null,
+      sales: data.sales || [],
+      archive: data.archive || [],
+      dues: data.dues || []
+    };
+  } else {
+    // brand-new account — start with empty defaults and create the doc
+    cloudCache = {shopProfile:{shopName:'', shopDetails:''}, billCounter:0, pro:null, sales:[], archive:[], dues:[]};
+    await docRef.set(cloudCache);
+  }
+}
+
+/* ---------- AUTH SCREEN UI ---------- */
+let authMode = 'login';
+function switchAuthTab(mode){
+  authMode = mode;
+  document.getElementById('authTabLogin').classList.toggle('active', mode==='login');
+  document.getElementById('authTabSignup').classList.toggle('active', mode==='signup');
+  document.getElementById('authSubmitBtn').textContent = mode==='login' ? 'Log In' : 'Create Account';
+  document.getElementById('authError').textContent = '';
+}
+
+function friendlyAuthError(code){
+  const map = {
+    'auth/invalid-email': 'That email address doesn\'t look right.',
+    'auth/user-not-found': 'No account found with that email.',
+    'auth/wrong-password': 'Incorrect password.',
+    'auth/invalid-credential': 'Incorrect email or password.',
+    'auth/email-already-in-use': 'An account already exists with that email — try logging in instead.',
+    'auth/weak-password': 'Password should be at least 6 characters.',
+    'auth/too-many-requests': 'Too many attempts — please wait a bit and try again.'
+  };
+  return map[code] || 'Something went wrong. Please try again.';
+}
+
+async function submitAuthForm(){
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authError');
+  errEl.textContent = '';
+
+  if(!email || !password){
+    errEl.textContent = 'Enter both email and password.';
+    return;
+  }
+
+  const btn = document.getElementById('authSubmitBtn');
+  btn.disabled = true;
+  try{
+    if(authMode === 'login'){
+      await auth.signInWithEmailAndPassword(email, password);
+    } else {
+      await auth.createUserWithEmailAndPassword(email, password);
+    }
+    // onAuthStateChanged (below) takes over from here
+  }catch(e){
+    errEl.textContent = friendlyAuthError(e.code);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function handleForgotPassword(){
+  const email = document.getElementById('authEmail').value.trim();
+  const errEl = document.getElementById('authError');
+  if(!email){
+    errEl.textContent = 'Enter your email above first, then tap "Forgot password?" again.';
+    return;
+  }
+  try{
+    await auth.sendPasswordResetEmail(email);
+    errEl.style.color = 'var(--accent)';
+    errEl.textContent = 'Password reset email sent — check your inbox.';
+  }catch(e){
+    errEl.style.color = 'var(--danger)';
+    errEl.textContent = friendlyAuthError(e.code);
+  }
+}
+
+function handleLogout(){
+  if(!confirm('Log out of Easy Bill Maker?')) return;
+  auth.signOut();
+}
+
+auth.onAuthStateChanged(async (user)=>{
+  if(user){
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('appRoot').style.display = 'block';
+    await loadCloudDataForUser(user.uid);
+    initAppUI();
+  } else {
+    currentUid = null;
+    document.getElementById('appRoot').style.display = 'none';
+    document.getElementById('authScreen').style.display = 'flex';
+  }
+});
+
 // Change this secret before selling licenses — it's what your key generator must match.
 const LICENSE_SECRET = 'EBM-PCYLION-2026';
 
@@ -976,9 +1234,8 @@ function computeLicenseKey(shopName){
 
 function isPro(){
   try{
-    const raw = localStorage.getItem(PRO_KEY);
-    if(!raw) return false;
-    const data = JSON.parse(raw);
+    if(!cloudCache.pro) return false;
+    const data = cloudCache.pro;
     return data && data.shopName && data.key === computeLicenseKey(data.shopName);
   }catch(e){ return false; }
 }
@@ -997,7 +1254,8 @@ function unlockPro(){
     return;
   }
   if(key === computeLicenseKey(shopName)){
-    localStorage.setItem(PRO_KEY, JSON.stringify({shopName, key}));
+    cloudCache.pro = {shopName, key};
+    queueCloudSave();
     errEl.textContent = '';
     renderDashboard();
     updateAdVisibility();
@@ -1025,10 +1283,20 @@ function emailAboutPro(){
   window.location.href = mailto;
 }
 
+let adPushed = false;
 function updateAdVisibility(){
   const ad = document.getElementById('adBanner');
   if(!ad) return;
-  ad.style.display = isPro() ? 'none' : 'block';
+  const pro = isPro();
+  ad.style.display = pro ? 'none' : 'block';
+  // Ad markup sits behind the login screen until initAppUI() runs, so the
+  // actual ad request is pushed here (once) instead of immediately on page load.
+  if(!pro && !adPushed){
+    try{
+      (adsbygoogle = window.adsbygoogle || []).push({});
+      adPushed = true;
+    }catch(e){ console.error('AdSense push failed', e); }
+  }
 }
 
 function fmt(n){
@@ -1067,14 +1335,11 @@ function showView(view){
 
 /* ---------- DUE / CREDIT TRACKING (Pro-only) ---------- */
 function loadDues(){
-  try{
-    const raw = localStorage.getItem(DUES_KEY);
-    return raw ? JSON.parse(raw) : [];
-  }catch(e){ return []; }
+  return cloudCache.dues || [];
 }
 function saveDues(dues){
-  try{ localStorage.setItem(DUES_KEY, JSON.stringify(dues)); }
-  catch(e){ console.error('Could not save dues', e); }
+  cloudCache.dues = dues;
+  queueCloudSave();
 }
 
 function getPaymentInfo(grandTotal){
@@ -1723,14 +1988,11 @@ function shareSMS(){
 
 /* ---------- SALES RECORDING (Pro-only, automatic) ---------- */
 function loadSales(){
-  try{
-    const raw = localStorage.getItem(SALES_KEY);
-    return raw ? JSON.parse(raw) : [];
-  }catch(e){ return []; }
+  return cloudCache.sales || [];
 }
 function saveSales(sales){
-  try{ localStorage.setItem(SALES_KEY, JSON.stringify(sales)); }
-  catch(e){ console.error('Could not save sales record', e); }
+  cloudCache.sales = sales;
+  queueCloudSave();
 }
 
 function recordSaleSilent(f){
@@ -1753,14 +2015,11 @@ function recordSaleSilent(f){
 
 /* ---------- MY BILLS ARCHIVE (free — keeps a full copy of every bill on this device) ---------- */
 function loadArchive(){
-  try{
-    const raw = localStorage.getItem(ARCHIVE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  }catch(e){ return []; }
+  return cloudCache.archive || [];
 }
 function saveArchive(archive){
-  try{ localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive)); }
-  catch(e){ console.error('Could not save bill archive', e); }
+  cloudCache.archive = archive;
+  queueCloudSave();
 }
 
 function saveBillToArchive(f){
@@ -1841,13 +2100,15 @@ function reopenArchivedBill(id){
 
 function clearArchive(){
   if(!confirm('Delete ALL saved bills from My Bills? This cannot be undone.')) return;
-  localStorage.removeItem(ARCHIVE_KEY);
+  cloudCache.archive = [];
+  queueCloudSave();
   renderArchive();
 }
 
 function clearHistory(){
   if(!confirm('Delete ALL saved sales records? This cannot be undone.')) return;
-  localStorage.removeItem(SALES_KEY);
+  cloudCache.sales = [];
+  queueCloudSave();
   renderDashboard();
 }
 
@@ -1862,12 +2123,8 @@ function hideResetConfirm(){
 }
 
 function resetApp(){
-  localStorage.removeItem(SALES_KEY);
-  localStorage.removeItem(PRO_KEY);
-  localStorage.removeItem(SHOP_PROFILE_KEY);
-  localStorage.removeItem(BILL_COUNTER_KEY);
-  localStorage.removeItem(ARCHIVE_KEY);
-  localStorage.removeItem(DUES_KEY);
+  cloudCache = {shopProfile:{shopName:'', shopDetails:''}, billCounter:0, pro:null, sales:[], archive:[], dues:[]};
+  queueCloudSave();
 
   items = [];
   currentBillSaved = false;
@@ -1885,7 +2142,7 @@ function resetApp(){
   updateTrackingStatus();
   hideResetConfirm();
   showView('bill');
-  alert('Everything has been reset on this device.');
+  alert('Everything has been reset on this account.');
 }
 
 /* ---------- DASHBOARD ---------- */
@@ -2061,11 +2318,11 @@ function renderDashboard(){
 
 /* ---------- BILL NUMBER AUTO-SUGGEST ---------- */
 function loadBillCounter(){
-  const n = parseInt(localStorage.getItem(BILL_COUNTER_KEY), 10);
-  return isNaN(n) ? 0 : n;
+  return cloudCache.billCounter || 0;
 }
 function saveBillCounter(n){
-  try{ localStorage.setItem(BILL_COUNTER_KEY, String(n)); }catch(e){ /* ignore */ }
+  cloudCache.billCounter = n;
+  queueCloudSave();
 }
 function formatBillNo(n){
   return String(n).padStart(5,'0');
@@ -2077,38 +2334,49 @@ function applySuggestedBillNo(){
   document.getElementById('billNo').value = suggestNextBillNo();
 }
 
-/* ---------- SHOP PROFILE (remembers shop name/details on this device) ---------- */
+/* ---------- SHOP PROFILE (synced to the logged-in account) ---------- */
 function saveShopProfile(){
   const shopName = document.getElementById('shopName').value;
   const shopDetails = document.getElementById('shopDetails').value;
-  try{
-    localStorage.setItem(SHOP_PROFILE_KEY, JSON.stringify({shopName, shopDetails}));
-  }catch(e){ /* ignore */ }
+  cloudCache.shopProfile = {shopName, shopDetails};
+  queueCloudSave();
 }
 
 function loadShopProfile(){
-  try{
-    const raw = localStorage.getItem(SHOP_PROFILE_KEY);
-    if(!raw) return;
-    const data = JSON.parse(raw);
-    if(data.shopName) document.getElementById('shopName').value = data.shopName;
-    if(data.shopDetails) document.getElementById('shopDetails').value = data.shopDetails;
-  }catch(e){ /* ignore */ }
+  const data = cloudCache.shopProfile;
+  if(!data) return;
+  if(data.shopName) document.getElementById('shopName').value = data.shopName;
+  if(data.shopDetails) document.getElementById('shopDetails').value = data.shopDetails;
 }
 
-/* ---------- INIT ---------- */
-setDateInputToToday('billDate');
-loadShopProfile();
-if(!document.getElementById('billNo').value){ applySuggestedBillNo(); }
-['shopName','shopDetails','billNo','billDate','customerName','customerNote'].forEach(id=>{
-  document.getElementById(id).addEventListener('input', render);
-});
-document.getElementById('shopName').addEventListener('input', saveShopProfile);
-document.getElementById('shopDetails').addEventListener('input', saveShopProfile);
-renderItemList();
-render();
-updateAdVisibility();
-updateTrackingStatus();
+/* ---------- INIT (runs once per login, after cloud data is loaded) ---------- */
+let appUIInitialized = false;
+let listenersAttached = false;
+
+function initAppUI(){
+  setDateInputToToday('billDate');
+  items = [];
+  currentBillSaved = false;
+  loadShopProfile();
+  document.getElementById('billNo').value = '';
+  applySuggestedBillNo();
+
+  if(!listenersAttached){
+    ['shopName','shopDetails','billNo','billDate','customerName','customerNote'].forEach(id=>{
+      document.getElementById(id).addEventListener('input', render);
+    });
+    document.getElementById('shopName').addEventListener('input', saveShopProfile);
+    document.getElementById('shopDetails').addEventListener('input', saveShopProfile);
+    listenersAttached = true;
+  }
+
+  renderItemList();
+  render();
+  updateAdVisibility();
+  updateTrackingStatus();
+  showView('bill');
+  appUIInitialized = true;
+}
 </script>
 
 <footer class="site-footer">
