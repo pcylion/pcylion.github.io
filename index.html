@@ -755,25 +755,18 @@
 </div>
 
 <!-- ================= EMAIL VERIFICATION GATE (shown after signup until confirmed) ================= -->
-<div id="verifyScreen" class="auth-screen" style="display:none;">
-  <div class="auth-card">
-    <h1>Check your email</h1>
-    <p class="tagline">One last step before you can use Easy Bill Maker.</p>
-    <p style="font-size:13.5px; color:var(--ink-soft); line-height:1.6;">
-      We've sent a verification link to <strong id="verifyEmailAddr" style="color:var(--ink);"></strong>.
-      Open that email and tap the link, then come back here and tap "I've verified."
-    </p>
-    <p class="auth-error" id="verifyError"></p>
-    <button class="btn-add" style="width:100%;" onclick="handleCheckVerified()">I've verified — Continue</button>
-    <div class="actions-row" style="margin-top:10px;">
-      <button class="btn-secondary" onclick="handleResendVerification()">Resend email</button>
-      <button class="btn-secondary" onclick="handleLogout()">Log out</button>
-    </div>
-  </div>
-</div>
+<!-- verification is now a soft, non-blocking reminder banner inside the app itself (see #verifyBanner below) -->
 
 <!-- ================= MAIN APP (shown when logged in) ================= -->
 <div id="appRoot" style="display:none;">
+
+<div id="verifyBanner" class="trial-banner" style="display:none; margin:16px 20px 0; border-color:var(--gold); background:var(--paper);">
+  📧 Please verify your email to secure your account.
+  <a href="#" onclick="handleResendVerification(); return false;">Resend email</a> ·
+  <a href="#" onclick="handleCheckVerified(); return false;">I've verified</a>
+  <div id="verifyBannerNote" style="font-size:12px; margin-top:4px;"></div>
+</div>
+
 
 <div class="topbar">
   <div>
@@ -1299,52 +1292,51 @@ function handleLogout(){
 }
 
 async function handleResendVerification(){
-  const errEl = document.getElementById('verifyError');
-  errEl.style.color = 'var(--accent)';
+  const noteEl = document.getElementById('verifyBannerNote');
   try{
     await auth.currentUser.sendEmailVerification();
-    errEl.textContent = 'Verification email resent — check your inbox (and spam folder).';
+    if(noteEl){
+      noteEl.style.color = 'var(--accent)';
+      noteEl.textContent = 'Verification email resent — check your inbox (and spam folder).';
+    }
   }catch(e){
-    errEl.style.color = 'var(--danger)';
-    errEl.textContent = friendlyAuthError(e.code);
+    if(noteEl){
+      noteEl.style.color = 'var(--danger)';
+      noteEl.textContent = friendlyAuthError(e.code);
+    }
   }
 }
 
 async function handleCheckVerified(){
-  const errEl = document.getElementById('verifyError');
-  errEl.textContent = '';
+  const noteEl = document.getElementById('verifyBannerNote');
   await auth.currentUser.reload();
   if(auth.currentUser.emailVerified){
-    document.getElementById('verifyScreen').style.display = 'none';
-    document.getElementById('appRoot').style.display = 'block';
-    await loadCloudDataForUser(auth.currentUser.uid);
-    initAppUI();
-  } else {
-    errEl.style.color = 'var(--danger)';
-    errEl.textContent = "Not verified yet — open the email and tap the link, then try again.";
+    updateVerifyBanner();
+  } else if(noteEl){
+    noteEl.style.color = 'var(--danger)';
+    noteEl.textContent = "Still not verified — open the email and tap the link, then try again.";
   }
 }
 
 auth.onAuthStateChanged(async (user)=>{
   if(user){
     document.getElementById('authScreen').style.display = 'none';
-    if(!user.emailVerified){
-      document.getElementById('verifyEmailAddr').textContent = user.email;
-      document.getElementById('verifyScreen').style.display = 'flex';
-      document.getElementById('appRoot').style.display = 'none';
-      return;
-    }
-    document.getElementById('verifyScreen').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
     await loadCloudDataForUser(user.uid);
     initAppUI();
+    updateVerifyBanner();
   } else {
     currentUid = null;
     document.getElementById('appRoot').style.display = 'none';
-    document.getElementById('verifyScreen').style.display = 'none';
     document.getElementById('authScreen').style.display = 'flex';
   }
 });
+
+function updateVerifyBanner(){
+  const banner = document.getElementById('verifyBanner');
+  if(!banner) return;
+  banner.style.display = (auth.currentUser && !auth.currentUser.emailVerified) ? 'block' : 'none';
+}
 
 // Change this secret before selling licenses — it's what your key generator must match.
 const LICENSE_SECRET = 'EBM-PCYLION-2026';
