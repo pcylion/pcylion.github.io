@@ -519,6 +519,59 @@
   }
   .lock-error{color:var(--danger); font-size:12.5px; margin-top:10px; min-height:16px;}
 
+  .notif-badge{
+    position:absolute;
+    top:-4px; right:-4px;
+    min-width:16px; height:16px;
+    padding:0 3px;
+    border-radius:8px;
+    background:var(--danger);
+    color:#fff;
+    font-size:10px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    line-height:1;
+  }
+  .notif-panel{
+    position:absolute;
+    top:64px; right:20px;
+    width:300px;
+    max-height:360px;
+    overflow-y:auto;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.15);
+    z-index:50;
+  }
+  .notif-panel-header{
+    padding:14px 16px;
+    font-weight:700;
+    font-size:13.5px;
+    border-bottom:1px solid var(--line);
+  }
+  .notif-item{
+    padding:12px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  .notif-item:last-child{border-bottom:none;}
+  .notif-title{font-size:13.5px; font-weight:600; margin-bottom:2px;}
+  .notif-msg{font-size:12.5px; color:var(--ink-soft); line-height:1.4; margin-bottom:4px;}
+  .notif-date{font-size:11px; color:var(--ink-soft);}
+
+  .trial-banner{
+    background:var(--accent-soft);
+    border:1px solid var(--accent);
+    border-radius:8px;
+    padding:12px 16px;
+    font-size:13px;
+    color:var(--ink);
+    margin-bottom:16px;
+  }
+  .trial-banner a{ color:var(--accent); font-weight:600; }
+
   .sub-note{
     font-size:12.5px;
     color:var(--ink-soft);
@@ -701,6 +754,24 @@
   </div>
 </div>
 
+<!-- ================= EMAIL VERIFICATION GATE (shown after signup until confirmed) ================= -->
+<div id="verifyScreen" class="auth-screen" style="display:none;">
+  <div class="auth-card">
+    <h1>Check your email</h1>
+    <p class="tagline">One last step before you can use Easy Bill Maker.</p>
+    <p style="font-size:13.5px; color:var(--ink-soft); line-height:1.6;">
+      We've sent a verification link to <strong id="verifyEmailAddr" style="color:var(--ink);"></strong>.
+      Open that email and tap the link, then come back here and tap "I've verified."
+    </p>
+    <p class="auth-error" id="verifyError"></p>
+    <button class="btn-add" style="width:100%;" onclick="handleCheckVerified()">I've verified — Continue</button>
+    <div class="actions-row" style="margin-top:10px;">
+      <button class="btn-secondary" onclick="handleResendVerification()">Resend email</button>
+      <button class="btn-secondary" onclick="handleLogout()">Log out</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MAIN APP (shown when logged in) ================= -->
 <div id="appRoot" style="display:none;">
 
@@ -714,9 +785,17 @@
     <button id="navArchive" onclick="showView('archive')">My Bills</button>
     <button id="navDues" onclick="showView('dues')">Due / Credit</button>
     <button id="navDash" onclick="showView('dash')">Sales Dashboard</button>
+    <button id="notifBell" class="btn-secondary" onclick="toggleNotifPanel()" style="position:relative;">
+      🔔<span id="notifBadge" class="notif-badge" style="display:none;">0</span>
+    </button>
     <button id="navLogout" onclick="handleLogout()">Log Out</button>
   </div>
+  <div id="notifPanel" class="notif-panel" style="display:none;">
+    <div class="notif-panel-header">Announcements</div>
+    <div id="notifList"></div>
+  </div>
 </div>
+
 
 <!-- Ad banner: hidden automatically for Pro users -->
 <div id="adBanner" class="ad-banner">
@@ -866,11 +945,11 @@
       <div id="bill"></div>
     </div>
     <div class="actions-row">
-      <button class="btn-secondary" onclick="shareBillPhoto()">📷 Share Photo — WhatsApp</button>
-      <button class="btn-secondary" onclick="shareBillPDF()">📄 Share PDF — WhatsApp</button>
+      <button class="btn-secondary" onclick="shareBillPhoto()"><svg width="15" height="15" viewBox="0 0 32 32" style="vertical-align:-2px; margin-right:4px;"><path fill="#25D366" d="M16 3C9.373 3 4 8.373 4 15c0 2.53.79 4.88 2.14 6.82L4 29l7.4-2.06A11.9 11.9 0 0 0 16 27c6.627 0 12-5.373 12-12S22.627 3 16 3z"/><path fill="#fff" d="M12.2 10.2c-.3-.66-.62-.67-.9-.68-.23-.01-.5-.01-.77-.01-.27 0-.7.1-1.07.5-.37.4-1.4 1.37-1.4 3.34 0 1.97 1.43 3.87 1.63 4.14.2.27 2.76 4.42 6.82 6.02 3.38 1.33 4.06 1.07 4.8 1 .74-.07 2.38-.97 2.72-1.9.33-.94.33-1.74.23-1.9-.1-.17-.37-.27-.77-.47-.4-.2-2.38-1.17-2.75-1.3-.37-.14-.64-.2-.9.2-.27.4-1.03 1.3-1.27 1.57-.23.27-.47.3-.87.1-.4-.2-1.68-.62-3.2-1.98-1.18-1.05-1.98-2.36-2.22-2.76-.23-.4-.02-.62.18-.82.18-.18.4-.47.6-.7.2-.24.27-.4.4-.67.13-.27.07-.5-.03-.7-.1-.2-.87-2.14-1.24-2.94z"/></svg>Share Photo — WhatsApp</button>
+      <button class="btn-secondary" onclick="shareBillPDF()"><svg width="15" height="15" viewBox="0 0 32 32" style="vertical-align:-2px; margin-right:4px;"><path fill="#25D366" d="M16 3C9.373 3 4 8.373 4 15c0 2.53.79 4.88 2.14 6.82L4 29l7.4-2.06A11.9 11.9 0 0 0 16 27c6.627 0 12-5.373 12-12S22.627 3 16 3z"/><path fill="#fff" d="M12.2 10.2c-.3-.66-.62-.67-.9-.68-.23-.01-.5-.01-.77-.01-.27 0-.7.1-1.07.5-.37.4-1.4 1.37-1.4 3.34 0 1.97 1.43 3.87 1.63 4.14.2.27 2.76 4.42 6.82 6.02 3.38 1.33 4.06 1.07 4.8 1 .74-.07 2.38-.97 2.72-1.9.33-.94.33-1.74.23-1.9-.1-.17-.37-.27-.77-.47-.4-.2-2.38-1.17-2.75-1.3-.37-.14-.64-.2-.9.2-.27.4-1.03 1.3-1.27 1.57-.23.27-.47.3-.87.1-.4-.2-1.68-.62-3.2-1.98-1.18-1.05-1.98-2.36-2.22-2.76-.23-.4-.02-.62.18-.82.18-.18.4-.47.6-.7.2-.24.27-.4.4-.67.13-.27.07-.5-.03-.7-.1-.2-.87-2.14-1.24-2.94z"/></svg>Share PDF — WhatsApp</button>
     </div>
     <div class="actions-row">
-      <button class="btn-secondary" onclick="shareWhatsAppText()">💬 Send text to a number — WhatsApp</button>
+      <button class="btn-secondary" onclick="shareWhatsAppText()"><svg width="15" height="15" viewBox="0 0 32 32" style="vertical-align:-2px; margin-right:4px;"><path fill="#25D366" d="M16 3C9.373 3 4 8.373 4 15c0 2.53.79 4.88 2.14 6.82L4 29l7.4-2.06A11.9 11.9 0 0 0 16 27c6.627 0 12-5.373 12-12S22.627 3 16 3z"/><path fill="#fff" d="M12.2 10.2c-.3-.66-.62-.67-.9-.68-.23-.01-.5-.01-.77-.01-.27 0-.7.1-1.07.5-.37.4-1.4 1.37-1.4 3.34 0 1.97 1.43 3.87 1.63 4.14.2.27 2.76 4.42 6.82 6.02 3.38 1.33 4.06 1.07 4.8 1 .74-.07 2.38-.97 2.72-1.9.33-.94.33-1.74.23-1.9-.1-.17-.37-.27-.77-.47-.4-.2-2.38-1.17-2.75-1.3-.37-.14-.64-.2-.9.2-.27.4-1.03 1.3-1.27 1.57-.23.27-.47.3-.87.1-.4-.2-1.68-.62-3.2-1.98-1.18-1.05-1.98-2.36-2.22-2.76-.23-.4-.02-.62.18-.82.18-.18.4-.47.6-.7.2-.24.27-.4.4-.67.13-.27.07-.5-.03-.7-.1-.2-.87-2.14-1.24-2.94z"/></svg>Send text to a number — WhatsApp</button>
       <button class="btn-secondary" onclick="shareSMS()">✉️ Send text — SMS</button>
     </div>
     <p class="save-note" id="saveNote"></p>
@@ -887,6 +966,7 @@
       <div class="lock-icon">🔒</div>
       <h2>Sales Dashboard <span class="pro-badge">PRO</span></h2>
       <p>Automatic sales tracking, the dashboard, and exports to Excel, PDF and Word are part of Easy Bill Maker Pro.</p>
+      <p class="lock-error" id="lockStatusMsg" style="color:var(--danger);"></p>
       <div class="field" style="text-align:center;">
         <label style="text-align:center;">Shop name on file</label>
         <p id="lockShopNameDisplay" style="font-weight:600; font-size:15px; margin:0 0 4px;">—</p>
@@ -908,7 +988,7 @@
     <!-- RESET APP — visible to everyone, Pro or not -->
     <div class="dash-panel">
       <h2>Reset app</h2>
-      <p class="sub">Wipes everything saved in your account — shop name/address, all bills in My Bills, all Pro sales records, due/credit records, bill number counter, and Pro unlock. This affects your account everywhere it's logged in, not just this device. Use this to start completely fresh.</p>
+      <p class="sub">Wipes everything saved in your account — shop name/address, all bills in My Bills, all Pro sales records, due/credit records, and bill number counter. This affects your account everywhere it's logged in, not just this device. Your Pro subscription status and free trial are not affected by this. Use this to start completely fresh.</p>
       <div id="resetStep1">
         <button class="btn-secondary" style="color:var(--danger); border-color:var(--danger);" onclick="showResetConfirm()">⚠ Reset app (clear everything)</button>
       </div>
@@ -923,6 +1003,8 @@
 
     <!-- FULL DASHBOARD (shown once unlocked) -->
     <div id="dashContent" style="display:none;">
+
+    <div id="trialBanner" class="trial-banner" style="display:none;"></div>
 
     <div class="dash-grid">
       <div class="stat-card">
@@ -1095,6 +1177,8 @@ let cloudCache = {
   shopProfile: {shopName:'', shopDetails:''},
   billCounter: 0,
   pro: null,
+  trialStartedAt: null,
+  readAnnouncementIds: [],
   sales: [],
   archive: [],
   dues: []
@@ -1121,13 +1205,22 @@ async function loadCloudDataForUser(uid){
       shopProfile: data.shopProfile || {shopName:'', shopDetails:''},
       billCounter: data.billCounter || 0,
       pro: data.pro || null,
+      trialStartedAt: data.trialStartedAt || null,
+      readAnnouncementIds: data.readAnnouncementIds || [],
       sales: data.sales || [],
       archive: data.archive || [],
       dues: data.dues || []
     };
   } else {
-    // brand-new account — start with empty defaults and create the doc
-    cloudCache = {shopProfile:{shopName:'', shopDetails:''}, billCounter:0, pro:null, sales:[], archive:[], dues:[]};
+    // brand-new account — start with empty defaults, a fresh 7-day free trial, and create the doc
+    cloudCache = {
+      shopProfile:{shopName:'', shopDetails:''},
+      billCounter:0,
+      pro:null,
+      trialStartedAt: new Date().toISOString(),
+      readAnnouncementIds: [],
+      sales:[], archive:[], dues:[]
+    };
     await docRef.set(cloudCache);
   }
 }
@@ -1172,7 +1265,8 @@ async function submitAuthForm(){
     if(authMode === 'login'){
       await auth.signInWithEmailAndPassword(email, password);
     } else {
-      await auth.createUserWithEmailAndPassword(email, password);
+      const cred = await auth.createUserWithEmailAndPassword(email, password);
+      await cred.user.sendEmailVerification();
     }
     // onAuthStateChanged (below) takes over from here
   }catch(e){
@@ -1204,15 +1298,50 @@ function handleLogout(){
   auth.signOut();
 }
 
+async function handleResendVerification(){
+  const errEl = document.getElementById('verifyError');
+  errEl.style.color = 'var(--accent)';
+  try{
+    await auth.currentUser.sendEmailVerification();
+    errEl.textContent = 'Verification email resent — check your inbox (and spam folder).';
+  }catch(e){
+    errEl.style.color = 'var(--danger)';
+    errEl.textContent = friendlyAuthError(e.code);
+  }
+}
+
+async function handleCheckVerified(){
+  const errEl = document.getElementById('verifyError');
+  errEl.textContent = '';
+  await auth.currentUser.reload();
+  if(auth.currentUser.emailVerified){
+    document.getElementById('verifyScreen').style.display = 'none';
+    document.getElementById('appRoot').style.display = 'block';
+    await loadCloudDataForUser(auth.currentUser.uid);
+    initAppUI();
+  } else {
+    errEl.style.color = 'var(--danger)';
+    errEl.textContent = "Not verified yet — open the email and tap the link, then try again.";
+  }
+}
+
 auth.onAuthStateChanged(async (user)=>{
   if(user){
     document.getElementById('authScreen').style.display = 'none';
+    if(!user.emailVerified){
+      document.getElementById('verifyEmailAddr').textContent = user.email;
+      document.getElementById('verifyScreen').style.display = 'flex';
+      document.getElementById('appRoot').style.display = 'none';
+      return;
+    }
+    document.getElementById('verifyScreen').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
     await loadCloudDataForUser(user.uid);
     initAppUI();
   } else {
     currentUid = null;
     document.getElementById('appRoot').style.display = 'none';
+    document.getElementById('verifyScreen').style.display = 'none';
     document.getElementById('authScreen').style.display = 'flex';
   }
 });
@@ -1232,12 +1361,34 @@ function computeLicenseKey(shopName){
   return code.slice(0,4)+'-'+code.slice(4,8);
 }
 
+function getProStatus(){
+  const now = Date.now();
+  const DAY = 24*60*60*1000;
+  const pro = cloudCache.pro;
+  let paidExpiresAt = null;
+
+  if(pro && pro.activatedAt && pro.shopName && pro.key === computeLicenseKey(pro.shopName)){
+    const activated = new Date(pro.activatedAt).getTime();
+    paidExpiresAt = new Date(activated + 365*DAY);
+    if(now < paidExpiresAt.getTime()){
+      return {active:true, reason:'paid', expiresAt:paidExpiresAt};
+    }
+  }
+
+  const trialStart = cloudCache.trialStartedAt ? new Date(cloudCache.trialStartedAt).getTime() : null;
+  if(trialStart){
+    const trialEnd = new Date(trialStart + 7*DAY);
+    if(now < trialEnd.getTime()){
+      return {active:true, reason:'trial', expiresAt:trialEnd};
+    }
+  }
+
+  if(paidExpiresAt) return {active:false, reason:'expired', expiresAt:paidExpiresAt};
+  return {active:false, reason:'none', expiresAt:null};
+}
+
 function isPro(){
-  try{
-    if(!cloudCache.pro) return false;
-    const data = cloudCache.pro;
-    return data && data.shopName && data.key === computeLicenseKey(data.shopName);
-  }catch(e){ return false; }
+  try{ return getProStatus().active; }catch(e){ return false; }
 }
 
 function unlockPro(){
@@ -1253,16 +1404,32 @@ function unlockPro(){
     errEl.textContent = 'Enter your license key.';
     return;
   }
-  if(key === computeLicenseKey(shopName)){
-    cloudCache.pro = {shopName, key};
-    queueCloudSave();
-    errEl.textContent = '';
-    renderDashboard();
-    updateAdVisibility();
-    updateTrackingStatus();
-  } else {
+  if(key !== computeLicenseKey(shopName)){
     errEl.textContent = 'That key doesn\'t match this shop name. Check both and try again.';
+    return;
   }
+
+  // A key that's already been activated before (active or expired) doesn't restart the
+  // 1-year clock just by being re-entered — renewing requires a fresh activation from us.
+  if(cloudCache.pro && cloudCache.pro.activatedAt){
+    const status = getProStatus();
+    if(status.reason === 'paid'){
+      errEl.style.color = 'var(--accent)';
+      errEl.textContent = `This key is already active — valid until ${status.expiresAt.toLocaleDateString('en-IN')}.`;
+    } else {
+      errEl.style.color = 'var(--danger)';
+      errEl.textContent = `Your Pro subscription expired on ${status.expiresAt.toLocaleDateString('en-IN')}. Please contact us to renew.`;
+    }
+    return;
+  }
+
+  cloudCache.pro = {shopName, key, activatedAt: new Date().toISOString()};
+  queueCloudSave();
+  errEl.style.color = 'var(--accent)';
+  errEl.textContent = '✔ Pro activated — valid for 1 year.';
+  renderDashboard();
+  updateAdVisibility();
+  updateTrackingStatus();
 }
 
 // Replace this with your real email address before publishing.
@@ -1306,6 +1473,8 @@ function fmt(n){
 function escapeHtml(s){
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+
+const WA_ICON = '<svg width="15" height="15" viewBox="0 0 32 32" style="vertical-align:-2px; margin-right:4px;"><path fill="#25D366" d="M16 3C9.373 3 4 8.373 4 15c0 2.53.79 4.88 2.14 6.82L4 29l7.4-2.06A11.9 11.9 0 0 0 16 27c6.627 0 12-5.373 12-12S22.627 3 16 3z"/><path fill="#fff" d="M12.2 10.2c-.3-.66-.62-.67-.9-.68-.23-.01-.5-.01-.77-.01-.27 0-.7.1-1.07.5-.37.4-1.4 1.37-1.4 3.34 0 1.97 1.43 3.87 1.63 4.14.2.27 2.76 4.42 6.82 6.02 3.38 1.33 4.06 1.07 4.8 1 .74-.07 2.38-.97 2.72-1.9.33-.94.33-1.74.23-1.9-.1-.17-.37-.27-.77-.47-.4-.2-2.38-1.17-2.75-1.3-.37-.14-.64-.2-.9.2-.27.4-1.03 1.3-1.27 1.57-.23.27-.47.3-.87.1-.4-.2-1.68-.62-3.2-1.98-1.18-1.05-1.98-2.36-2.22-2.76-.23-.4-.02-.62.18-.82.18-.18.4-.47.6-.7.2-.24.27-.4.4-.67.13-.27.07-.5-.03-.7-.1-.2-.87-2.14-1.24-2.94z"/></svg>';
 
 // Sets a <input type="date"> to today's date using LOCAL time zone components.
 // (input.valueAsDate = new Date() is timezone-unsafe — it uses UTC day boundaries,
@@ -1442,7 +1611,7 @@ function renderDues(){
       <div class="actions">
         <button class="btn-secondary" onclick="toggleDuePayForm(${idx})">💰 Record payment</button>
         ${d.phone ? `
-        <button class="btn-secondary" onclick="sendDueReminderWhatsApp(${idx})">📲 Remind — WhatsApp</button>
+        <button class="btn-secondary" onclick="sendDueReminderWhatsApp(${idx})">${WA_ICON}Remind — WhatsApp</button>
         <button class="btn-secondary" onclick="sendDueReminderSMS(${idx})">✉️ Remind — SMS</button>` : ''}
       </div>
       <div class="due-pay-form" id="duePayForm-${idx}">
@@ -2123,7 +2292,17 @@ function hideResetConfirm(){
 }
 
 function resetApp(){
-  cloudCache = {shopProfile:{shopName:'', shopDetails:''}, billCounter:0, pro:null, sales:[], archive:[], dues:[]};
+  // Pro entitlement, trial window, and read-announcement state are tied to the ACCOUNT,
+  // not to app data — reset wipes bills/sales/dues, but never resets these (otherwise
+  // resetting would let someone claim endless free trials).
+  cloudCache = {
+    shopProfile:{shopName:'', shopDetails:''},
+    billCounter:0,
+    pro: cloudCache.pro,
+    trialStartedAt: cloudCache.trialStartedAt,
+    readAnnouncementIds: cloudCache.readAnnouncementIds || [],
+    sales:[], archive:[], dues:[]
+  };
   queueCloudSave();
 
   items = [];
@@ -2182,13 +2361,15 @@ function getPeriodRange(){
 function renderDashboard(){
   const lockEl = document.getElementById('lockScreen');
   const contentEl = document.getElementById('dashContent');
+  const status = getProStatus();
 
-  if(!isPro()){
+  if(!status.active){
     lockEl.style.display = 'block';
     contentEl.style.display = 'none';
     const currentShop = document.getElementById('shopName').value.trim();
     const display = document.getElementById('lockShopNameDisplay');
     const unlockBtn = document.getElementById('unlockBtn');
+    const statusMsg = document.getElementById('lockStatusMsg');
     if(currentShop){
       display.textContent = currentShop;
       unlockBtn.disabled = false;
@@ -2196,10 +2377,23 @@ function renderDashboard(){
       display.textContent = 'Not set yet — enter your shop name on the New Bill tab first.';
       unlockBtn.disabled = true;
     }
+    statusMsg.textContent = (status.reason === 'expired')
+      ? `Your Pro subscription expired on ${status.expiresAt.toLocaleDateString('en-IN')}. Enter a renewed key below, or contact us.`
+      : '';
     return;
   }
   lockEl.style.display = 'none';
   contentEl.style.display = 'block';
+
+  const trialBanner = document.getElementById('trialBanner');
+  if(status.reason === 'trial'){
+    const daysLeft = Math.max(1, Math.ceil((status.expiresAt.getTime() - Date.now()) / (24*60*60*1000)));
+    trialBanner.style.display = 'block';
+    trialBanner.innerHTML = `🎁 Free trial — <strong>${daysLeft} day${daysLeft===1?'':'s'} left</strong>. Enter a Pro license key anytime to keep these features after it ends. <a href="#" onclick="emailAboutPro(); return false;">Ask about pricing</a>`;
+  } else {
+    trialBanner.style.display = 'block';
+    trialBanner.innerHTML = `✔ Pro active — valid until <strong>${status.expiresAt.toLocaleDateString('en-IN')}</strong>.`;
+  }
 
   const sales = loadSales();
   const now = new Date();
@@ -2374,8 +2568,60 @@ function initAppUI(){
   render();
   updateAdVisibility();
   updateTrackingStatus();
+  refreshNotifications();
   showView('bill');
   appUIInitialized = true;
+}
+
+/* ---------- ANNOUNCEMENTS / NOTIFICATIONS ---------- */
+let announcementsCache = [];
+
+async function refreshNotifications(){
+  try{
+    const snap = await db.collection('announcements').orderBy('dateISO','desc').limit(20).get();
+    announcementsCache = snap.docs.map(d=>({id:d.id, ...d.data()}));
+  }catch(e){
+    console.error('Could not load announcements', e);
+    announcementsCache = [];
+  }
+  const readIds = cloudCache.readAnnouncementIds || [];
+  const unread = announcementsCache.filter(a=>!readIds.includes(a.id));
+  const badge = document.getElementById('notifBadge');
+  if(unread.length > 0){
+    badge.style.display = 'flex';
+    badge.textContent = unread.length;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function toggleNotifPanel(){
+  const panel = document.getElementById('notifPanel');
+  const opening = panel.style.display === 'none';
+  panel.style.display = opening ? 'block' : 'none';
+  if(opening) renderNotifPanel();
+}
+
+function renderNotifPanel(){
+  const wrap = document.getElementById('notifList');
+  if(announcementsCache.length === 0){
+    wrap.innerHTML = `<div class="empty-state">No announcements yet.</div>`;
+    return;
+  }
+  wrap.innerHTML = announcementsCache.map(a=>{
+    const dateStr = a.dateISO ? new Date(a.dateISO).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '';
+    return `<div class="notif-item">
+      <div class="notif-title">${escapeHtml(a.title||'')}</div>
+      <div class="notif-msg">${escapeHtml(a.message||'')}</div>
+      <div class="notif-date">${dateStr}</div>
+    </div>`;
+  }).join('');
+
+  const readIds = new Set(cloudCache.readAnnouncementIds || []);
+  announcementsCache.forEach(a=>readIds.add(a.id));
+  cloudCache.readAnnouncementIds = Array.from(readIds);
+  queueCloudSave();
+  document.getElementById('notifBadge').style.display = 'none';
 }
 </script>
 
