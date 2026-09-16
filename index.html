@@ -1235,10 +1235,18 @@ function signInWithGoogle(){
   const errEl = document.getElementById('authError');
   errEl.textContent = '';
   const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(e=>{
+  // signInWithRedirect (full page redirect) instead of signInWithPopup — popups are
+  // unreliable on mobile browsers and often get stuck on a broken handler page.
+  auth.signInWithRedirect(provider).catch(e=>{
     errEl.textContent = friendlyAuthError(e.code);
   });
 }
+
+// Picks up the result after the redirect flow above brings the user back to this page.
+auth.getRedirectResult().catch(e=>{
+  const errEl = document.getElementById('authError');
+  if(errEl && e && e.code) errEl.textContent = friendlyAuthError(e.code);
+});
 
 function handleLogout(){
   if(!confirm('Log out of Easy Bill Maker?')) return;
