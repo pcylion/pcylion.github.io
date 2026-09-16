@@ -785,7 +785,10 @@
     <button id="navLogout" onclick="handleLogout()">Log Out</button>
   </div>
   <div id="notifPanel" class="notif-panel" style="display:none;">
-    <div class="notif-panel-header">Announcements</div>
+    <div class="notif-panel-header" style="display:flex; align-items:center; justify-content:space-between;">
+      <span>Announcements</span>
+      <button onclick="toggleNotifPanel()" style="background:none; border:none; font-size:16px; line-height:1; padding:2px 6px; cursor:pointer; color:var(--ink-soft);">✕</button>
+    </div>
     <div id="notifList"></div>
   </div>
 </div>
@@ -2518,6 +2521,15 @@ function toggleNotifPanel(){
   panel.style.display = opening ? 'block' : 'none';
   if(opening) renderNotifPanel();
 }
+
+// Tap anywhere outside the panel or the bell to close it.
+document.addEventListener('click', function(e){
+  const panel = document.getElementById('notifPanel');
+  const bell = document.getElementById('notifBell');
+  if(!panel || panel.style.display === 'none') return;
+  if(panel.contains(e.target) || (bell && bell.contains(e.target))) return;
+  panel.style.display = 'none';
+});
 
 function renderNotifPanel(){
   const wrap = document.getElementById('notifList');
