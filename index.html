@@ -236,6 +236,63 @@
   }
   .actions-row button{flex:1; min-width:160px;}
 
+  .action-sheet-overlay{
+    position:fixed; inset:0;
+    background:rgba(20,17,12,0.42);
+    z-index:90;
+    display:none;
+  }
+  .action-sheet-overlay.open{ display:block; }
+  .action-sheet{
+    position:fixed;
+    left:0; right:0; bottom:0;
+    max-width:480px;
+    margin:0 auto;
+    background:var(--paper);
+    border-radius:16px 16px 0 0;
+    padding:16px 18px calc(16px + env(safe-area-inset-bottom));
+    z-index:91;
+    display:none;
+    box-shadow:0 -6px 24px rgba(0,0,0,0.18);
+  }
+  .action-sheet.open{ display:block; }
+  .action-sheet-title{
+    font-size:12.5px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--ink-soft);
+    text-align:center;
+    margin:0 0 8px;
+  }
+  .action-sheet-item{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:none;
+    border:none;
+    border-bottom:1px solid var(--line);
+    padding:14px 4px;
+    font-size:14.5px;
+    font-weight:500;
+    color:var(--ink);
+    text-align:left;
+    cursor:pointer;
+  }
+  .action-sheet-item:last-child{ border-bottom:none; }
+  .action-sheet-item svg{ width:20px; height:20px; flex-shrink:0; }
+  .action-sheet-cancel{
+    width:100%;
+    margin-top:12px;
+    background:var(--paper-alt);
+    border:none;
+    border-radius:8px;
+    padding:12px;
+    font-weight:600;
+    color:var(--ink);
+    cursor:pointer;
+  }
+
   .save-note{
     font-size:12.5px;
     color:var(--accent);
@@ -599,6 +656,17 @@
     width:100%; height:100%;
     object-fit:cover;
   }
+  .shop-logo-preview{
+    width:52px; height:52px;
+    border-radius:10px;
+    border:1px dashed var(--line);
+    background:#fff;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .shop-logo-preview img{ width:100%; height:100%; object-fit:contain; }
   .notif-item{
     padding:12px 16px;
     border-bottom:1px solid var(--line);
@@ -984,22 +1052,31 @@
   <div>
     <div class="top-actions">
       <button class="btn-secondary" onclick="clearAll()">Clear bill</button>
-      <button class="btn-add" style="flex:none;" onclick="printBill()">🖨 Print / Save as PDF</button>
     </div>
     <div class="bill-wrap">
       <div id="bill"></div>
     </div>
     <div class="actions-row">
-      <button class="btn-secondary" onclick="shareBillPhoto()"><svg width="15" height="15" viewBox="0 0 32 32" style="vertical-align:-2px; margin-right:4px;"><path fill="#25D366" d="M16 3C9.373 3 4 8.373 4 15c0 2.53.79 4.88 2.14 6.82L4 29l7.4-2.06A11.9 11.9 0 0 0 16 27c6.627 0 12-5.373 12-12S22.627 3 16 3z"/><path fill="#fff" d="M12.2 10.2c-.3-.66-.62-.67-.9-.68-.23-.01-.5-.01-.77-.01-.27 0-.7.1-1.07.5-.37.4-1.4 1.37-1.4 3.34 0 1.97 1.43 3.87 1.63 4.14.2.27 2.76 4.42 6.82 6.02 3.38 1.33 4.06 1.07 4.8 1 .74-.07 2.38-.97 2.72-1.9.33-.94.33-1.74.23-1.9-.1-.17-.37-.27-.77-.47-.4-.2-2.38-1.17-2.75-1.3-.37-.14-.64-.2-.9.2-.27.4-1.03 1.3-1.27 1.57-.23.27-.47.3-.87.1-.4-.2-1.68-.62-3.2-1.98-1.18-1.05-1.98-2.36-2.22-2.76-.23-.4-.02-.62.18-.82.18-.18.4-.47.6-.7.2-.24.27-.4.4-.67.13-.27.07-.5-.03-.7-.1-.2-.87-2.14-1.24-2.94z"/></svg>Share Photo — WhatsApp</button>
-      <button class="btn-secondary" onclick="shareBillPDF()"><svg width="15" height="15" viewBox="0 0 32 32" style="vertical-align:-2px; margin-right:4px;"><path fill="#25D366" d="M16 3C9.373 3 4 8.373 4 15c0 2.53.79 4.88 2.14 6.82L4 29l7.4-2.06A11.9 11.9 0 0 0 16 27c6.627 0 12-5.373 12-12S22.627 3 16 3z"/><path fill="#fff" d="M12.2 10.2c-.3-.66-.62-.67-.9-.68-.23-.01-.5-.01-.77-.01-.27 0-.7.1-1.07.5-.37.4-1.4 1.37-1.4 3.34 0 1.97 1.43 3.87 1.63 4.14.2.27 2.76 4.42 6.82 6.02 3.38 1.33 4.06 1.07 4.8 1 .74-.07 2.38-.97 2.72-1.9.33-.94.33-1.74.23-1.9-.1-.17-.37-.27-.77-.47-.4-.2-2.38-1.17-2.75-1.3-.37-.14-.64-.2-.9.2-.27.4-1.03 1.3-1.27 1.57-.23.27-.47.3-.87.1-.4-.2-1.68-.62-3.2-1.98-1.18-1.05-1.98-2.36-2.22-2.76-.23-.4-.02-.62.18-.82.18-.18.4-.47.6-.7.2-.24.27-.4.4-.67.13-.27.07-.5-.03-.7-.1-.2-.87-2.14-1.24-2.94z"/></svg>Share PDF — WhatsApp</button>
-    </div>
-    <div class="actions-row">
-      <button class="btn-secondary" onclick="shareWhatsAppText()"><svg width="15" height="15" viewBox="0 0 32 32" style="vertical-align:-2px; margin-right:4px;"><path fill="#25D366" d="M16 3C9.373 3 4 8.373 4 15c0 2.53.79 4.88 2.14 6.82L4 29l7.4-2.06A11.9 11.9 0 0 0 16 27c6.627 0 12-5.373 12-12S22.627 3 16 3z"/><path fill="#fff" d="M12.2 10.2c-.3-.66-.62-.67-.9-.68-.23-.01-.5-.01-.77-.01-.27 0-.7.1-1.07.5-.37.4-1.4 1.37-1.4 3.34 0 1.97 1.43 3.87 1.63 4.14.2.27 2.76 4.42 6.82 6.02 3.38 1.33 4.06 1.07 4.8 1 .74-.07 2.38-.97 2.72-1.9.33-.94.33-1.74.23-1.9-.1-.17-.37-.27-.77-.47-.4-.2-2.38-1.17-2.75-1.3-.37-.14-.64-.2-.9.2-.27.4-1.03 1.3-1.27 1.57-.23.27-.47.3-.87.1-.4-.2-1.68-.62-3.2-1.98-1.18-1.05-1.98-2.36-2.22-2.76-.23-.4-.02-.62.18-.82.18-.18.4-.47.6-.7.2-.24.27-.4.4-.67.13-.27.07-.5-.03-.7-.1-.2-.87-2.14-1.24-2.94z"/></svg>Send text to a number — WhatsApp</button>
-      <button class="btn-secondary" onclick="shareSMS()">✉️ Send text — SMS</button>
+      <button class="btn-add" onclick="saveBillFlow()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; margin-right:5px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+        Save
+      </button>
+      <button class="btn-secondary" onclick="shareFlow()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; margin-right:5px;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.5l6.8-3.9M8.6 13.5l6.8 3.9"/></svg>
+        Share
+      </button>
     </div>
     <p class="save-note" id="saveNote"></p>
   </div>
 
+</div>
+
+<!-- Reusable bottom action sheet — used by Save, Share, and the Due/Credit reminder button -->
+<div class="action-sheet-overlay" id="actionSheetOverlay" onclick="closeActionSheet()"></div>
+<div class="action-sheet" id="actionSheet">
+  <p class="action-sheet-title" id="actionSheetTitle"></p>
+  <div id="actionSheetBody"></div>
+  <button class="action-sheet-cancel" onclick="closeActionSheet()">Cancel</button>
 </div>
 
 <!-- ================= DASHBOARD VIEW ================= -->
@@ -1176,6 +1253,17 @@
     <div class="panel">
       <h2>Shop / issued by</h2>
       <p class="sub-note" style="margin:0 0 12px;">Saved once here — every new bill uses this automatically.</p>
+      <div class="field" style="display:flex; align-items:center; gap:12px;">
+        <input type="file" id="shopLogoInput" accept="image/*" style="display:none;" onchange="handleShopLogoChange(event)">
+        <div class="shop-logo-preview" id="shopLogoPreviewWrap" onclick="document.getElementById('shopLogoInput').click()">
+          <img id="shopLogoPreviewImg" style="display:none;">
+          <svg id="shopLogoPlaceholder" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        </div>
+        <div>
+          <label style="margin:0 0 2px;">Shop logo (optional)</label>
+          <p class="sub-note" style="margin:0;">Tap to add — shown on printed and shared bills.</p>
+        </div>
+      </div>
       <div class="field">
         <label for="shopName">Shop or business name</label>
         <input id="shopName" placeholder="e.g. Green Valley General Store">
@@ -1738,9 +1826,7 @@ function renderDues(){
       </div>
       <div class="actions">
         <button class="btn-secondary" onclick="toggleDuePayForm(${idx})">💰 Record payment</button>
-        ${d.phone ? `
-        <button class="btn-secondary" onclick="sendDueReminderWhatsApp(${idx})">${WA_ICON}Remind — WhatsApp</button>
-        <button class="btn-secondary" onclick="sendDueReminderSMS(${idx})">✉️ Remind — SMS</button>` : ''}
+        ${d.phone ? `<button class="btn-secondary" onclick="remindDueFlow(${idx})">${WA_ICON}Remind</button>` : ''}
       </div>
       <div class="due-pay-form" id="duePayForm-${idx}">
         <input type="number" step="any" placeholder="Amount paid now" id="duePayAmt-${idx}">
@@ -1782,6 +1868,13 @@ function sendDueReminderSMS(idx){
   const shopName = document.getElementById('shopName').value.trim() || 'our shop';
   const msg = `Dear ${entry.name || 'Customer'}, this is a reminder that your outstanding balance at ${shopName} is Rs.${fmt(entry.totalDue)}. Kindly clear it at your earliest convenience. Thank you.`;
   window.location.href = `sms:${dueReminderPhone(entry)}?body=${encodeURIComponent(msg)}`;
+}
+
+function remindDueFlow(idx){
+  openActionSheet('Send a payment reminder', [
+    {label:'WhatsApp', icon:WA_ICON, onClick: ()=>sendDueReminderWhatsApp(idx)},
+    {label:'SMS', icon:ICON_SMS, onClick: ()=>sendDueReminderSMS(idx)}
+  ]);
 }
 
 function getFilteredSales(){
@@ -1992,9 +2085,12 @@ function render(){
 
   document.getElementById('bill').innerHTML = `
     <div class="bill-head">
-      <div>
-        <p class="shop-name">${escapeHtml(f.shopName)}</p>
-        ${f.shopDetails ? `<p class="shop-sub">${escapeHtml(f.shopDetails)}</p>` : ''}
+      <div style="display:flex; align-items:flex-start; gap:12px;">
+        ${(cloudCache.shopProfile && cloudCache.shopProfile.logoURL) ? `<img src="${cloudCache.shopProfile.logoURL}" alt="" style="width:44px; height:44px; object-fit:contain; border-radius:6px; flex-shrink:0;">` : ''}
+        <div>
+          <p class="shop-name">${escapeHtml(f.shopName)}</p>
+          ${f.shopDetails ? `<p class="shop-sub">${escapeHtml(f.shopDetails)}</p>` : ''}
+        </div>
       </div>
       <div class="bill-doc-meta">
         <div><span class="label">Bill No: </span><span class="val">${f.billNo ? escapeHtml(f.billNo) : '—'}</span></div>
@@ -2125,6 +2221,63 @@ function flashSaveNote(msg){
 function printBill(){
   finalizeBill();
   window.print();
+}
+
+/* ---------- ACTION SHEET (generic bottom sheet used by Save / Share / Remind) ---------- */
+function openActionSheet(title, items){
+  document.getElementById('actionSheetTitle').textContent = title;
+  const body = document.getElementById('actionSheetBody');
+  body.innerHTML = '';
+  items.forEach(item=>{
+    const btn = document.createElement('button');
+    btn.className = 'action-sheet-item';
+    btn.innerHTML = (item.icon || '') + '<span>' + item.label + '</span>';
+    btn.onclick = function(){
+      if(!item.keepOpen) closeActionSheet();
+      item.onClick();
+    };
+    body.appendChild(btn);
+  });
+  document.getElementById('actionSheet').classList.add('open');
+  document.getElementById('actionSheetOverlay').classList.add('open');
+}
+
+function closeActionSheet(){
+  document.getElementById('actionSheet').classList.remove('open');
+  document.getElementById('actionSheetOverlay').classList.remove('open');
+}
+
+const ICON_BACK = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
+const ICON_PRINT = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>';
+const ICON_SAVE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/></svg>';
+const ICON_PHOTO = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M21 16l-5.5-5.5L5 21"/></svg>';
+const ICON_PDF = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/></svg>';
+const ICON_TEXT = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+const ICON_SMS = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>';
+
+function saveBillFlow(){
+  if(items.length===0){ alert('Add at least one item first.'); return; }
+  openActionSheet('Save this bill', [
+    {label:'Save only', icon:ICON_SAVE, onClick: finalizeBill},
+    {label:'Save and print', icon:ICON_PRINT, onClick: printBill}
+  ]);
+}
+
+function shareFlow(){
+  if(items.length===0){ alert('Add at least one item first.'); return; }
+  openActionSheet('Share this bill', [
+    {label:'WhatsApp', icon:WA_ICON, onClick: openWhatsAppShareOptions, keepOpen:true},
+    {label:'SMS', icon:ICON_SMS, onClick: shareSMS}
+  ]);
+}
+
+function openWhatsAppShareOptions(){
+  openActionSheet('Share via WhatsApp', [
+    {label:'Back', icon:ICON_BACK, onClick: shareFlow, keepOpen:true},
+    {label:'Text message', icon:ICON_TEXT, onClick: shareWhatsAppText},
+    {label:'Photo', icon:ICON_PHOTO, onClick: shareBillPhoto},
+    {label:'PDF', icon:ICON_PDF, onClick: shareBillPDF}
+  ]);
 }
 
 /* ---------- SHARE: PROFESSIONAL PHOTO / PDF (WhatsApp) + TEXT (WhatsApp/SMS) ---------- */
@@ -2650,7 +2803,7 @@ function applySuggestedBillNo(){
 function saveShopProfile(){
   const shopName = document.getElementById('shopName').value;
   const shopDetails = document.getElementById('shopDetails').value;
-  cloudCache.shopProfile = {shopName, shopDetails};
+  cloudCache.shopProfile = {...(cloudCache.shopProfile||{}), shopName, shopDetails};
   queueCloudSave();
 }
 
@@ -2659,6 +2812,61 @@ function loadShopProfile(){
   if(!data) return;
   if(data.shopName) document.getElementById('shopName').value = data.shopName;
   if(data.shopDetails) document.getElementById('shopDetails').value = data.shopDetails;
+  const logoImg = document.getElementById('shopLogoPreviewImg');
+  const logoPlaceholder = document.getElementById('shopLogoPlaceholder');
+  if(logoImg && logoPlaceholder){
+    if(data.logoURL){
+      logoImg.src = data.logoURL;
+      logoImg.style.display = 'block';
+      logoPlaceholder.style.display = 'none';
+    } else {
+      logoImg.removeAttribute('src');
+      logoImg.style.display = 'none';
+      logoPlaceholder.style.display = 'block';
+    }
+  }
+}
+
+function handleShopLogoChange(event){
+  const file = event.target.files && event.target.files[0];
+  if(!file) return;
+  if(!file.type || !file.type.startsWith('image/')){
+    alert('Please choose an image file.');
+    event.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      const MAX = 240;
+      let w = img.width, h = img.height;
+      if(w >= h){
+        if(w > MAX){ h = Math.round(h * MAX / w); w = MAX; }
+      } else {
+        if(h > MAX){ w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      // PNG (not JPEG) so a logo with a transparent background stays transparent.
+      const dataUrl = canvas.toDataURL('image/png');
+
+      cloudCache.shopProfile = {...(cloudCache.shopProfile||{}), logoURL: dataUrl};
+      queueCloudSave();
+
+      const logoImg = document.getElementById('shopLogoPreviewImg');
+      const logoPlaceholder = document.getElementById('shopLogoPlaceholder');
+      logoImg.src = dataUrl;
+      logoImg.style.display = 'block';
+      logoPlaceholder.style.display = 'none';
+      render();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
 }
 
 /* ---------- INIT (runs once per login, after cloud data is loaded) ---------- */
