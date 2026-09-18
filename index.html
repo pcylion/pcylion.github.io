@@ -534,23 +534,21 @@
     justify-content:center;
     line-height:1;
   }
-  .notif-panel{
-    position:absolute;
-    top:64px; right:20px;
-    width:300px;
-    max-height:360px;
-    overflow-y:auto;
-    background:var(--paper);
+  .profile-avatar{
+    width:72px; height:72px;
+    border-radius:50%;
+    background:var(--paper-alt);
     border:1px solid var(--line);
-    border-radius:10px;
-    box-shadow:0 8px 24px rgba(0,0,0,0.15);
-    z-index:50;
+    margin:0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    cursor:pointer;
   }
-  .notif-panel-header{
-    padding:14px 16px;
-    font-weight:700;
-    font-size:13.5px;
-    border-bottom:1px solid var(--line);
+  .profile-avatar img{
+    width:100%; height:100%;
+    object-fit:cover;
   }
   .notif-item{
     padding:12px 16px;
@@ -777,19 +775,9 @@
     <button id="navArchive" onclick="showView('archive')">My Bills</button>
     <button id="navDues" onclick="showView('dues')">Due / Credit</button>
     <button id="navDash" onclick="showView('dash')">Sales Dashboard</button>
-    <button id="notifBell" class="btn-secondary" onclick="toggleNotifPanel()" style="position:relative;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-      <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
+    <button id="navProfile" style="position:relative;" onclick="showView('profile')">
+      Profile<span id="notifBadge" class="notif-badge" style="display:none;">0</span>
     </button>
-    <span id="userDisplay" style="font-size:12px; color:var(--ink-soft); align-self:center; margin:0 4px;"></span>
-    <button id="navLogout" onclick="handleLogout()">Log Out</button>
-  </div>
-  <div id="notifPanel" class="notif-panel" style="display:none;">
-    <div class="notif-panel-header" style="display:flex; align-items:center; justify-content:space-between;">
-      <span>Announcements</span>
-      <button onclick="toggleNotifPanel()" style="background:none; border:none; font-size:16px; line-height:1; padding:2px 6px; cursor:pointer; color:var(--ink-soft);">✕</button>
-    </div>
-    <div id="notifList"></div>
   </div>
 </div>
 
@@ -812,15 +800,7 @@
   <!-- LEFT: INPUT -->
   <div>
     <div class="panel">
-      <h2>Shop / issued by</h2>
-      <div class="field">
-        <label for="shopName">Shop or business name</label>
-        <input id="shopName" placeholder="e.g. Green Valley General Store">
-      </div>
-      <div class="field">
-        <label for="shopDetails">Address / phone / GST / notes (optional)</label>
-        <input id="shopDetails" placeholder="e.g. Main Road, Your City · +91-XXXXXXXXXX">
-      </div>
+      <h2>Bill details</h2>
       <div class="row2">
         <div class="field">
           <label for="billNo">Bill / invoice no. (auto-suggested, editable)</label>
@@ -958,44 +938,15 @@
 <div id="viewDash" class="app">
   <div style="grid-column:1/-1;">
 
-    <!-- LOCK SCREEN (shown when Pro is not unlocked) -->
+    <!-- LOCK TEASER (shown when Pro is not unlocked) -->
     <div id="lockScreen" class="lock-screen" style="display:none;">
-      <div class="lock-icon">🔒</div>
+      <div class="lock-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="11" x="4" y="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+      </div>
       <h2>Sales Dashboard <span class="pro-badge">PRO</span></h2>
       <p>Automatic sales tracking, the dashboard, and exports to Excel, PDF and Word are part of Easy Bill Maker Pro.</p>
       <p class="lock-error" id="lockStatusMsg" style="color:var(--danger);"></p>
-      <div class="field" style="text-align:center;">
-        <label style="text-align:center;">Shop name on file</label>
-        <p id="lockShopNameDisplay" style="font-weight:600; font-size:15px; margin:0 0 4px;">—</p>
-      </div>
-      <div class="field">
-        <label for="unlockKey">License key</label>
-        <input id="unlockKey" placeholder="e.g. A1B2-C3D4">
-      </div>
-      <button class="btn-add" id="unlockBtn" onclick="unlockPro()">Unlock Pro</button>
-      <p class="lock-error" id="unlockError"></p>
-
-      <div class="lock-divider">or</div>
-      <button class="btn-secondary" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="emailAboutPro()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-        Contact Us for Pro Pricing
-      </button>
-    </div>
-
-    <!-- RESET APP — visible to everyone, Pro or not -->
-    <div class="dash-panel">
-      <h2>Reset app</h2>
-      <p class="sub">Wipes everything saved in your account — shop name/address, all bills in My Bills, all Pro sales records, due/credit records, and bill number counter. This affects your account everywhere it's logged in, not just this device. Your Pro subscription status and free trial are not affected by this. Use this to start completely fresh.</p>
-      <div id="resetStep1">
-        <button class="btn-secondary" style="color:var(--danger); border-color:var(--danger);" onclick="showResetConfirm()">⚠ Reset app (clear everything)</button>
-      </div>
-      <div id="resetStep2" style="display:none;">
-        <p style="color:var(--danger); font-weight:600; font-size:13.5px; margin:0 0 10px;">Are you absolutely sure? This cannot be undone.</p>
-        <div class="actions-row">
-          <button class="btn-secondary" onclick="hideResetConfirm()">Cancel</button>
-          <button class="btn-add" style="background:var(--danger);" onclick="resetApp()">Yes, erase everything</button>
-        </div>
-      </div>
+      <button class="btn-add" onclick="showView('profile')">Go to your Profile to unlock Pro</button>
     </div>
 
     <!-- FULL DASHBOARD (shown once unlocked) -->
@@ -1108,10 +1059,12 @@
   <div style="grid-column:1/-1;">
 
     <div id="duesLocked" class="lock-screen" style="display:none;">
-      <div class="lock-icon">🔒</div>
+      <div class="lock-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="11" x="4" y="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+      </div>
       <h2>Due / Credit Tracking <span class="pro-badge">PRO</span></h2>
       <p>Track partial payments, outstanding dues, and send payment reminders — automatically. This is a Pro feature.</p>
-      <button class="btn-add" onclick="showView('dash')">Go to Sales Dashboard to unlock Pro</button>
+      <button class="btn-add" onclick="showView('profile')">Go to your Profile to unlock Pro</button>
     </div>
 
     <div id="duesContent" style="display:none;">
@@ -1135,6 +1088,87 @@
       </div>
 
     </div>
+  </div>
+</div>
+
+<!-- ================= PROFILE VIEW ================= -->
+<div id="viewProfile" class="app">
+  <div style="grid-column:1/-1; max-width:640px; margin:0 auto;">
+
+    <div class="dash-panel" style="text-align:center;">
+      <input type="file" id="profilePhotoInput" accept="image/*" style="display:none;" onchange="handleProfilePhotoChange(event)">
+      <div class="profile-avatar" id="profileAvatarWrap" onclick="document.getElementById('profilePhotoInput').click()">
+        <img id="profileAvatarImg" style="display:none;">
+        <svg id="profileAvatarPlaceholder" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+      </div>
+      <p class="sub-note" style="margin-top:8px;">Tap to add a profile photo (optional)</p>
+      <p id="profileUserDisplay" style="font-weight:600; font-size:15px; margin:10px 0 0;"></p>
+    </div>
+
+    <div class="panel">
+      <h2>Shop / issued by</h2>
+      <p class="sub-note" style="margin:0 0 12px;">Saved once here — every new bill uses this automatically.</p>
+      <div class="field">
+        <label for="shopName">Shop or business name</label>
+        <input id="shopName" placeholder="e.g. Green Valley General Store">
+      </div>
+      <div class="field">
+        <label for="shopDetails">Address / phone / GST / notes (optional)</label>
+        <input id="shopDetails" placeholder="e.g. Main Road, Your City · +91-XXXXXXXXXX">
+      </div>
+    </div>
+
+    <div class="dash-panel">
+      <h2 style="display:flex; align-items:center; justify-content:space-between;">
+        <span>Announcements</span>
+      </h2>
+      <div id="notifList"></div>
+    </div>
+
+    <div class="lock-screen" id="profileProSection" style="max-width:none;">
+      <div class="lock-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="11" x="4" y="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+      </div>
+      <h2>Upgrade to Pro <span class="pro-badge">PRO</span></h2>
+      <p id="profileProIntro">Automatic sales tracking, the dashboard, due/credit tracking, and exports to Excel, PDF and Word are part of Easy Bill Maker Pro.</p>
+      <p class="lock-error" id="profileProStatus" style="color:var(--accent);"></p>
+      <div class="field" style="text-align:center;">
+        <label style="text-align:center;">Shop name on file</label>
+        <p id="lockShopNameDisplay" style="font-weight:600; font-size:15px; margin:0 0 4px;">—</p>
+      </div>
+      <div class="field">
+        <label for="unlockKey">License key</label>
+        <input id="unlockKey" placeholder="e.g. A1B2-C3D4">
+      </div>
+      <button class="btn-add" id="unlockBtn" onclick="unlockPro()">Unlock Pro</button>
+      <p class="lock-error" id="unlockError"></p>
+
+      <div class="lock-divider">or</div>
+      <button class="btn-secondary" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="emailAboutPro()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        Contact Us for Pro Pricing
+      </button>
+    </div>
+
+    <div class="dash-panel">
+      <h2>Reset app</h2>
+      <p class="sub">Wipes everything saved in your account — shop name/address, all bills in My Bills, all Pro sales records, due/credit records, and bill number counter. This affects your account everywhere it's logged in, not just this device. Your Pro subscription status and free trial are not affected by this. Use this to start completely fresh.</p>
+      <div id="resetStep1">
+        <button class="btn-secondary" style="color:var(--danger); border-color:var(--danger);" onclick="showResetConfirm()">⚠ Reset app (clear everything)</button>
+      </div>
+      <div id="resetStep2" style="display:none;">
+        <p style="color:var(--danger); font-weight:600; font-size:13.5px; margin:0 0 10px;">Are you absolutely sure? This cannot be undone.</p>
+        <div class="actions-row">
+          <button class="btn-secondary" onclick="hideResetConfirm()">Cancel</button>
+          <button class="btn-add" style="background:var(--danger);" onclick="resetApp()">Yes, erase everything</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-panel" style="text-align:center;">
+      <button id="navLogout" onclick="handleLogout()" style="width:100%;">Log Out</button>
+    </div>
+
   </div>
 </div>
 
@@ -1348,6 +1382,7 @@ function unlockPro(){
   errEl.style.color = 'var(--accent)';
   errEl.textContent = '✔ Pro activated — valid for 1 year.';
   renderDashboard();
+  renderProfile();
   updateAdVisibility();
   updateTrackingStatus();
 }
@@ -1368,6 +1403,108 @@ function emailAboutPro(){
     '?subject=' + encodeURIComponent(subject) +
     '&body=' + encodeURIComponent(body);
   window.location.href = mailto;
+}
+
+/* ---------- PROFILE VIEW ---------- */
+function renderProfile(){
+  const user = auth.currentUser;
+  const nameEl = document.getElementById('profileUserDisplay');
+  if(nameEl){
+    nameEl.textContent = user
+      ? (user.displayName ? `Signed in as ${user.displayName}` : (user.email || ''))
+      : '';
+  }
+
+  const photoURL = (cloudCache.shopProfile && cloudCache.shopProfile.photoURL) || null;
+  const imgEl = document.getElementById('profileAvatarImg');
+  const placeholderEl = document.getElementById('profileAvatarPlaceholder');
+  if(photoURL){
+    imgEl.src = photoURL;
+    imgEl.style.display = 'block';
+    placeholderEl.style.display = 'none';
+  } else {
+    imgEl.removeAttribute('src');
+    imgEl.style.display = 'none';
+    placeholderEl.style.display = 'block';
+  }
+
+  // Shop name display + unlock button enable/disable — this logic used to live
+  // inside renderDashboard() before the Pro-unlock form moved to this tab.
+  const shopName = (cloudCache.shopProfile && cloudCache.shopProfile.shopName)
+    ? cloudCache.shopProfile.shopName.trim() : '';
+  const lockShopNameDisplay = document.getElementById('lockShopNameDisplay');
+  const unlockBtn = document.getElementById('unlockBtn');
+  if(shopName){
+    lockShopNameDisplay.textContent = shopName;
+    unlockBtn.disabled = false;
+  } else {
+    lockShopNameDisplay.textContent = 'Not set yet — enter your shop name above first.';
+    unlockBtn.disabled = true;
+  }
+
+  const status = getProStatus();
+  const statusEl = document.getElementById('profileProStatus');
+  if(status.active && status.reason === 'paid'){
+    statusEl.style.color = 'var(--accent)';
+    statusEl.textContent = `✔ Pro active — valid until ${status.expiresAt.toLocaleDateString('en-IN')}.`;
+  } else if(status.active && status.reason === 'trial'){
+    const daysLeft = Math.max(1, Math.ceil((status.expiresAt.getTime() - Date.now()) / (24*60*60*1000)));
+    statusEl.style.color = 'var(--accent)';
+    statusEl.textContent = `🎁 Free trial — ${daysLeft} day${daysLeft===1?'':'s'} left.`;
+  } else if(status.reason === 'expired'){
+    statusEl.style.color = 'var(--danger)';
+    statusEl.textContent = `Your Pro subscription expired on ${status.expiresAt.toLocaleDateString('en-IN')}.`;
+  } else {
+    statusEl.style.color = 'var(--accent)';
+    statusEl.textContent = '';
+  }
+
+  renderNotifPanel();
+}
+
+function handleProfilePhotoChange(event){
+  const file = event.target.files && event.target.files[0];
+  if(!file) return;
+  if(!file.type || !file.type.startsWith('image/')){
+    alert('Please choose an image file.');
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const img = new Image();
+    img.onload = function(){
+      // Resize to a small square-ish thumbnail before storing — this gets saved as
+      // base64 text inside the Firestore user document (1MiB document limit), so it
+      // needs to stay small.
+      const MAX = 160;
+      let w = img.width, h = img.height;
+      if(w >= h){
+        if(w > MAX){ h = Math.round(h * MAX / w); w = MAX; }
+      } else {
+        if(h > MAX){ w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+      if(!cloudCache.shopProfile) cloudCache.shopProfile = {shopName:'', shopDetails:''};
+      cloudCache.shopProfile.photoURL = dataUrl;
+      queueCloudSave();
+
+      const imgEl = document.getElementById('profileAvatarImg');
+      const placeholderEl = document.getElementById('profileAvatarPlaceholder');
+      imgEl.src = dataUrl;
+      imgEl.style.display = 'block';
+      placeholderEl.style.display = 'none';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  event.target.value = '';
 }
 
 let adPushed = false;
@@ -1413,13 +1550,16 @@ function showView(view){
   document.getElementById('viewDash').classList.toggle('visible', view==='dash');
   document.getElementById('viewArchive').classList.toggle('visible', view==='archive');
   document.getElementById('viewDues').classList.toggle('visible', view==='dues');
+  document.getElementById('viewProfile').classList.toggle('visible', view==='profile');
   document.getElementById('navBill').classList.toggle('active', view==='bill');
   document.getElementById('navDash').classList.toggle('active', view==='dash');
   document.getElementById('navArchive').classList.toggle('active', view==='archive');
   document.getElementById('navDues').classList.toggle('active', view==='dues');
+  document.getElementById('navProfile').classList.toggle('active', view==='profile');
   if(view==='dash') renderDashboard();
   if(view==='archive') renderArchive();
   if(view==='dues') renderDues();
+  if(view==='profile') renderProfile();
 }
 
 /* ---------- DUE / CREDIT TRACKING (Pro-only) ---------- */
@@ -2286,19 +2426,9 @@ function renderDashboard(){
   if(!status.active){
     lockEl.style.display = 'block';
     contentEl.style.display = 'none';
-    const currentShop = document.getElementById('shopName').value.trim();
-    const display = document.getElementById('lockShopNameDisplay');
-    const unlockBtn = document.getElementById('unlockBtn');
     const statusMsg = document.getElementById('lockStatusMsg');
-    if(currentShop){
-      display.textContent = currentShop;
-      unlockBtn.disabled = false;
-    } else {
-      display.textContent = 'Not set yet — enter your shop name on the New Bill tab first.';
-      unlockBtn.disabled = true;
-    }
     statusMsg.textContent = (status.reason === 'expired')
-      ? `Your Pro subscription expired on ${status.expiresAt.toLocaleDateString('en-IN')}. Enter a renewed key below, or contact us.`
+      ? `Your Pro subscription expired on ${status.expiresAt.toLocaleDateString('en-IN')}. Go to your Profile to enter a renewed key, or contact us.`
       : '';
     return;
   }
@@ -2514,22 +2644,6 @@ async function refreshNotifications(){
     badge.style.display = 'none';
   }
 }
-
-function toggleNotifPanel(){
-  const panel = document.getElementById('notifPanel');
-  const opening = panel.style.display === 'none';
-  panel.style.display = opening ? 'block' : 'none';
-  if(opening) renderNotifPanel();
-}
-
-// Tap anywhere outside the panel or the bell to close it.
-document.addEventListener('click', function(e){
-  const panel = document.getElementById('notifPanel');
-  const bell = document.getElementById('notifBell');
-  if(!panel || panel.style.display === 'none') return;
-  if(panel.contains(e.target) || (bell && bell.contains(e.target))) return;
-  panel.style.display = 'none';
-});
 
 function renderNotifPanel(){
   const wrap = document.getElementById('notifList');
