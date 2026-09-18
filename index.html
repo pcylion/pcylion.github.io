@@ -1020,7 +1020,7 @@
     </div>
 
     <div class="panel">
-      <h2>Bill to / instructions</h2>
+      <h2>Customer details</h2>
       <div class="field">
         <label for="customerName">Customer name</label>
         <input id="customerName" placeholder="e.g. Walk-in customer">
@@ -1030,17 +1030,17 @@
         <input id="customerNote" placeholder="e.g. Delivery by evening, cash on delivery">
       </div>
       <div class="field">
-        <label for="customerPhone">Customer phone (opens their WhatsApp chat directly, even if unsaved — also used for SMS)</label>
+        <label for="customerPhone">Customer phone (optional — used for WhatsApp/SMS sharing and reminders)</label>
         <input id="customerPhone" type="tel" placeholder="e.g. 9876543210">
       </div>
     </div>
 
     <div class="panel">
-      <h2>Add ingredient / item</h2>
+      <h2>Add item</h2>
       <div class="item-form">
         <div class="field" style="margin-bottom:0;">
-          <label for="itemName">Ingredient / item name</label>
-          <input id="itemName" placeholder="e.g. Mustard oil" onkeydown="if(event.key==='Enter'){event.preventDefault(); document.getElementById('itemQty').focus();}">
+          <label for="itemName">Item name</label>
+          <input id="itemName" placeholder="e.g. Rice, notebook, repair service..." onkeydown="if(event.key==='Enter'){event.preventDefault(); document.getElementById('itemQty').focus();}">
         </div>
         <div class="row3">
           <div class="field" style="margin-bottom:0;">
@@ -1169,7 +1169,7 @@
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="11" x="4" y="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
       </div>
       <h2>Sales Dashboard <span class="pro-badge">PRO</span></h2>
-      <p>Automatic sales tracking, the dashboard, and exports to Excel, PDF and Word are part of Easy Bill Maker Pro.</p>
+      <p>Automatic sales tracking, the dashboard, due/credit tracking, and exports to Excel, PDF and Word are part of Easy Bill Maker Pro.</p>
       <p class="lock-error" id="lockStatusMsg" style="color:var(--danger);"></p>
       <button class="btn-add" onclick="showView('profile')">Go to your Profile to unlock Pro</button>
     </div>
@@ -1203,7 +1203,7 @@
     </div>
 
     <div class="dash-panel">
-      <h2>Records for</h2>
+      <h2>Filter by time range</h2>
       <div class="field">
         <label for="periodSelect">Time range</label>
         <select id="periodSelect" onchange="onPeriodChange()">
@@ -1417,13 +1417,13 @@
       <div class="lock-divider">or</div>
       <button class="btn-secondary" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="emailAboutPro()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-        Contact Us for Pro Pricing
+        Contact us about Pro pricing
       </button>
     </div>
 
     <div class="dash-panel">
       <h2>Reset app</h2>
-      <p class="sub">Wipes everything saved in your account — shop name/address, all bills in My Bills, all Pro sales records, due/credit records, and bill number counter. This affects your account everywhere it's logged in, not just this device. Your Pro subscription status and free trial are not affected by this. Use this to start completely fresh.</p>
+      <p class="sub">Wipes everything saved in your account — shop name/address, all bills in My Bills, all Pro sales records, due/credit records, and bill number counter. This affects your account on every device you're signed in on, not just this one. Your Pro subscription status and free trial are not affected by this. Use this to start completely fresh.</p>
       <div id="resetStep1">
         <button class="btn-secondary" style="color:var(--danger); border-color:var(--danger);" onclick="showResetConfirm()">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; margin-right:5px;"><path d="M10.3 3.9 1.9 18.3a1.5 1.5 0 0 0 1.3 2.2h17.6a1.5 1.5 0 0 0 1.3-2.2L13.7 3.9a1.5 1.5 0 0 0-2.6 0Z"/><path d="M12 9.5v4.5"/><path d="M12 17.2h.01"/></svg>
@@ -1980,7 +1980,7 @@ function renderDues(){
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; margin-right:5px;"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12.5" r="3"/><path d="M6 6V4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V6"/></svg>
           Record payment
         </button>
-        ${d.phone ? `<button class="btn-secondary" onclick="remindDueFlow(${idx})">${WA_ICON}Remind</button>` : ''}
+        ${d.phone ? `<button class="btn-secondary" onclick="remindDueFlow(${idx})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; margin-right:5px;"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Remind</button>` : ''}
       </div>
       <div class="due-pay-form" id="duePayForm-${idx}">
         <input type="number" step="any" placeholder="Amount paid now" id="duePayAmt-${idx}">
@@ -2648,7 +2648,7 @@ async function shareBillPDF(){
 function shareWhatsAppText(){
   if(items.length===0){ alert('Add at least one item first.'); return; }
   const phone = cleanPhoneNumber();
-  if(!phone){ alert("Enter the customer's phone number in the 'Bill to' section first."); return; }
+  if(!phone){ alert("Enter the customer's phone number in the Customer details section first."); return; }
   finalizeBill();
   const text = encodeURIComponent(buildBillText());
   window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
@@ -2657,7 +2657,7 @@ function shareWhatsAppText(){
 function shareSMS(){
   if(items.length===0){ alert('Add at least one item first.'); return; }
   const phone = cleanPhoneNumber();
-  if(!phone){ alert("Enter the customer's phone number in the 'Bill to' section first."); return; }
+  if(!phone){ alert("Enter the customer's phone number in the Customer details section first."); return; }
   finalizeBill();
   const text = encodeURIComponent(buildBillText());
   window.location.href = `sms:${phone}?body=${text}`;
@@ -3211,15 +3211,15 @@ function renderNotifPanel(){
   <ul>
     <li>Instant bill calculation with support for per-kg, per-litre, and per-piece pricing</li>
     <li>Print any bill or save it as a PDF</li>
-    <li>Share bills as a photo or PDF directly through WhatsApp</li>
+    <li>Share bills as a photo, PDF, or text message — via WhatsApp or SMS</li>
     <li>Automatic, editable bill numbering</li>
-    <li>"My Bills" keeps a copy of every bill you create, free of charge</li>
-    <li>An optional Pro plan adds automatic sales tracking, exportable reports (Excel, PDF, Word), and item/customer popularity insights</li>
+    <li>"My Bills" keeps a searchable copy of every bill you create, free of charge</li>
+    <li>An optional Pro plan adds automatic sales tracking, exportable reports (Excel, PDF, Word), item/customer popularity insights, and due/credit (khata) tracking with one-tap payment reminders in 12 languages</li>
   </ul>
 
   <h2>Frequently asked questions</h2>
   <h3>Is Easy Bill Maker free to use?</h3>
-  <p>Yes. Creating, printing, and sharing bills, along with the "My Bills" record-keeping feature, is completely free. A separate Pro subscription unlocks sales analytics and reporting for shop owners who want deeper insight into their business.</p>
+  <p>Yes. Creating, printing, and sharing bills, along with the "My Bills" record-keeping feature, is completely free. A separate Pro subscription unlocks sales analytics, reporting, and due/credit tracking for shop owners who want deeper insight into their business and an easy way to keep tabs on customer payments.</p>
 
   <h3>Where is my data stored?</h3>
   <p>Your bills, shop details, and sales records are securely stored in your account (powered by Google Firebase) once you sign in with Google. This means your data is backed up automatically and stays available if you switch to a new phone or browser — just sign in with the same Google account to see it again.</p>
