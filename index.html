@@ -175,7 +175,7 @@
     border-radius:6px;
     background:#fff;
     font-family:'Inter',sans-serif;
-    font-size:14px;
+    font-size:16px;
     color:var(--ink);
   }
   input:focus, select:focus{
@@ -236,6 +236,33 @@
   }
   .actions-row button{flex:1; min-width:160px;}
 
+  .sync-error-banner{
+    position:sticky;
+    top:0;
+    z-index:80;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--danger);
+    color:#fff;
+    font-size:12.5px;
+    font-weight:500;
+    padding:9px 14px;
+  }
+  .sync-error-banner svg{ flex-shrink:0; }
+  .sync-error-banner span{ flex:1; }
+  .sync-error-banner button{
+    background:rgba(255,255,255,0.18);
+    border:none;
+    color:#fff;
+    font-size:12px;
+    font-weight:600;
+    padding:5px 10px;
+    border-radius:6px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+
   .action-sheet-overlay{
     position:fixed; inset:0;
     background:rgba(20,17,12,0.42);
@@ -291,6 +318,13 @@
     font-weight:600;
     color:var(--ink);
     cursor:pointer;
+  }
+  .confirm-dialog-message{
+    font-size:14.5px;
+    line-height:1.5;
+    color:var(--ink);
+    text-align:center;
+    margin:4px 0 18px;
   }
 
   .save-note{
@@ -725,6 +759,29 @@
     justify-content:center;
     padding:24px;
   }
+  .loading-screen{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+  }
+  .loading-title{
+    font-family:'Source Serif 4',serif;
+    font-weight:700;
+    font-size:20px;
+    color:var(--ink);
+    margin:0;
+  }
+  .loading-spinner{
+    width:26px; height:26px;
+    border:3px solid var(--line);
+    border-top-color:var(--accent);
+    border-radius:50%;
+    animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
   .auth-card{
     background:var(--paper);
     border:1px solid var(--line);
@@ -859,7 +916,12 @@
 <body>
 
 <!-- ================= AUTH SCREEN (shown when logged out) ================= -->
-<div id="authScreen" class="auth-screen">
+<div id="loadingScreen" class="loading-screen">
+  <p class="loading-title">Easy Bill Maker</p>
+  <div class="loading-spinner"></div>
+</div>
+
+<div id="authScreen" class="auth-screen" style="display:none;">
   <div class="auth-card">
     <h1>Easy Bill Maker</h1>
     <p class="tagline">Fast Billing, Fast Growing.</p>
@@ -881,6 +943,12 @@
 
 <!-- ================= MAIN APP (shown when logged in) ================= -->
 <div id="appRoot" style="display:none;">
+
+<div id="syncErrorBanner" class="sync-error-banner" style="display:none;">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.9 18.3a1.5 1.5 0 0 0 1.3 2.2h17.6a1.5 1.5 0 0 0 1.3-2.2L13.7 3.9a1.5 1.5 0 0 0-2.6 0Z"/><path d="M12 9.5v4.5"/><path d="M12 17.2h.01"/></svg>
+  <span id="syncErrorText">Couldn't save your last change — check your internet connection.</span>
+  <button onclick="retryCloudSave()">Retry now</button>
+</div>
 
 <div class="topbar">
   <div>
@@ -921,6 +989,8 @@
 <!-- Ad banner: hidden automatically for Pro users -->
 <div id="adBanner" class="ad-banner">
   <p class="ad-label">Advertisement</p>
+  <!-- TODO before launch: replace with your real ad unit ID from the AdSense console
+       (Ads → By ad unit → Create new ad unit). No ads will show until this is a real ID. -->
   <ins class="adsbygoogle"
        style="display:block"
        data-ad-client="ca-pub-5718298836909354"
@@ -970,12 +1040,12 @@
       <div class="item-form">
         <div class="field" style="margin-bottom:0;">
           <label for="itemName">Ingredient / item name</label>
-          <input id="itemName" placeholder="e.g. Mustard oil">
+          <input id="itemName" placeholder="e.g. Mustard oil" onkeydown="if(event.key==='Enter'){event.preventDefault(); document.getElementById('itemQty').focus();}">
         </div>
         <div class="row3">
           <div class="field" style="margin-bottom:0;">
             <label for="itemQty">Quantity</label>
-            <input id="itemQty" type="number" step="any" placeholder="e.g. 2.5">
+            <input id="itemQty" type="number" step="any" placeholder="e.g. 2.5" onkeydown="if(event.key==='Enter'){event.preventDefault(); document.getElementById('itemPrice').focus();}">
           </div>
           <div class="field" style="margin-bottom:0;">
             <label for="itemUnit">Unit</label>
@@ -991,7 +1061,7 @@
           </div>
           <div class="field" style="margin-bottom:0;">
             <label for="itemPrice">Price / unit (₹)</label>
-            <input id="itemPrice" type="number" step="any" placeholder="e.g. 140">
+            <input id="itemPrice" type="number" step="any" placeholder="e.g. 140" onkeydown="if(event.key==='Enter'){event.preventDefault(); addItem();}">
           </div>
         </div>
         <button class="btn-add" onclick="addItem()">+ Add item to bill</button>
@@ -1077,6 +1147,16 @@
   <p class="action-sheet-title" id="actionSheetTitle"></p>
   <div id="actionSheetBody"></div>
   <button class="action-sheet-cancel" onclick="closeActionSheet()">Cancel</button>
+</div>
+
+<!-- Reusable confirm dialog — replaces native browser confirm() popups everywhere in the app -->
+<div class="action-sheet-overlay" id="confirmOverlay" onclick="closeConfirmDialog()"></div>
+<div class="action-sheet" id="confirmDialog">
+  <p class="confirm-dialog-message" id="confirmDialogMessage"></p>
+  <div style="display:flex; gap:10px;">
+    <button class="btn-secondary" style="flex:1;" onclick="closeConfirmDialog()">Cancel</button>
+    <button class="btn-add" id="confirmDialogConfirmBtn" style="flex:1;" onclick="runConfirmDialog()">Confirm</button>
+  </div>
 </div>
 
 <!-- ================= DASHBOARD VIEW ================= -->
@@ -1191,6 +1271,9 @@
     <div class="dash-panel">
       <h2>My Bills</h2>
       <p class="sub">Every bill you've printed or shared is saved here automatically, so you can find and reopen it anytime — no Pro subscription needed.</p>
+      <div class="field" style="margin-bottom:14px;">
+        <input id="archiveSearch" placeholder="Search by customer name or bill number" oninput="renderArchive()">
+      </div>
       <div id="archiveList"></div>
       <div class="actions-row" style="margin-top:16px;">
         <button class="btn-secondary" onclick="clearArchive()">Clear all saved bills</button>
@@ -1409,13 +1492,31 @@ let cloudCache = {
 let currentUid = null;
 let cloudSaveTimer = null;
 
+function showSyncError(){
+  const banner = document.getElementById('syncErrorBanner');
+  if(banner) banner.style.display = 'flex';
+}
+function clearSyncError(){
+  const banner = document.getElementById('syncErrorBanner');
+  if(banner) banner.style.display = 'none';
+}
+
+function performCloudSave(){
+  if(!currentUid) return;
+  db.collection('users').doc(currentUid).set(cloudCache, {merge:false})
+    .then(clearSyncError)
+    .catch(e=>{ console.error('Cloud save failed', e); showSyncError(); });
+}
+
+function retryCloudSave(){
+  clearTimeout(cloudSaveTimer);
+  performCloudSave();
+}
+
 function queueCloudSave(){
   if(!currentUid) return;
   clearTimeout(cloudSaveTimer);
-  cloudSaveTimer = setTimeout(()=>{
-    db.collection('users').doc(currentUid).set(cloudCache, {merge:false})
-      .catch(e=>console.error('Cloud save failed', e));
-  }, 600);
+  cloudSaveTimer = setTimeout(performCloudSave, 600);
 }
 
 async function loadCloudDataForUser(uid){
@@ -1475,11 +1576,11 @@ function signInWithGoogle(){
 }
 
 function handleLogout(){
-  if(!confirm('Log out of Easy Bill Maker?')) return;
-  auth.signOut();
+  showConfirmDialog('Log out of Easy Bill Maker?', 'Log out', ()=>{ auth.signOut(); }, true);
 }
 
 auth.onAuthStateChanged(async (user)=>{
+  document.getElementById('loadingScreen').style.display = 'none';
   if(user){
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
@@ -1495,6 +1596,13 @@ auth.onAuthStateChanged(async (user)=>{
 });
 
 // Change this secret before selling licenses — it's what your key generator must match.
+// KNOWN LIMITATION (accepted for a zero-budget launch): this check runs entirely in the
+// browser. Firestore's security rules only confirm someone is writing to their OWN account
+// document — they can't verify the license key itself, since rules can't run the same hash
+// check this file does. A technical user could open dev tools and write a fake `pro` object
+// straight to their own Firestore doc to unlock Pro for free. Closing this fully would need
+// a Cloud Function (paid Blaze plan) to verify keys server-side. Low real-world risk for this
+// app's audience, but worth knowing before leaning on this for real revenue at scale.
 const LICENSE_SECRET = 'EBM-PCYLION-2026';
 
 function computeLicenseKey(shopName){
@@ -1895,9 +2003,18 @@ function submitDuePayment(idx){
   recordDuePayment(entry.key, amt);
 }
 
+// Shared Indian-mobile-number cleanup: strips everything but digits, drops a
+// leading 0 some people type before their number, and assumes +91 for a plain
+// 10-digit number.
+function normalizeIndianMobileDigits(raw){
+  let digits = (raw||'').replace(/[^0-9]/g, '');
+  if(digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  if(digits.length === 10) digits = '91' + digits;
+  return digits;
+}
+
 function dueReminderPhone(entry){
-  const digits = (entry.phone||'').replace(/[^0-9]/g,'');
-  return digits.length===10 ? '91'+digits : digits;
+  return normalizeIndianMobileDigits(entry.phone);
 }
 
 /* ---------- DUE REMINDER MESSAGE — MAJOR INDIAN LANGUAGES ----------
@@ -2218,18 +2335,19 @@ function render(){
 }
 
 function clearAll(){
-  if(!confirm('Clear the whole bill? This removes all items and customer details (your shop name/address stays saved).')) return;
-  items = [];
-  document.querySelectorAll('#viewBill input').forEach(i=>i.value='');
-  document.getElementById('discountType').value = 'amount';
-  if(document.getElementById('paymentStatus')) document.getElementById('paymentStatus').value = 'full';
-  loadShopProfile();
-  setDateInputToToday('billDate');
-  applySuggestedBillNo();
-  currentBillSaved = false;
-  renderItemList();
-  render();
-  updateTrackingStatus();
+  showConfirmDialog('Clear the whole bill? This removes all items and customer details (your shop name/address stays saved).', 'Clear bill', ()=>{
+    items = [];
+    document.querySelectorAll('#viewBill input').forEach(i=>i.value='');
+    document.getElementById('discountType').value = 'amount';
+    if(document.getElementById('paymentStatus')) document.getElementById('paymentStatus').value = 'full';
+    loadShopProfile();
+    setDateInputToToday('billDate');
+    applySuggestedBillNo();
+    currentBillSaved = false;
+    renderItemList();
+    render();
+    updateTrackingStatus();
+  }, true);
 }
 
 /* ---------- FINALIZE: advances bill number + auto-records the sale for Pro ---------- */
@@ -2324,6 +2442,37 @@ function closeActionSheet(){
   document.getElementById('actionSheetOverlay').classList.remove('open');
 }
 
+/* ---------- CONFIRM DIALOG (replaces native browser confirm() popups) ---------- */
+let confirmDialogCallback = null;
+
+function showConfirmDialog(message, confirmLabel, onConfirm, danger){
+  document.getElementById('confirmDialogMessage').textContent = message;
+  const btn = document.getElementById('confirmDialogConfirmBtn');
+  btn.textContent = confirmLabel || 'Confirm';
+  if(danger){
+    btn.style.background = 'var(--danger)';
+    btn.style.borderColor = 'var(--danger)';
+  } else {
+    btn.style.background = '';
+    btn.style.borderColor = '';
+  }
+  confirmDialogCallback = onConfirm;
+  document.getElementById('confirmDialog').classList.add('open');
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+
+function closeConfirmDialog(){
+  document.getElementById('confirmDialog').classList.remove('open');
+  document.getElementById('confirmOverlay').classList.remove('open');
+  confirmDialogCallback = null;
+}
+
+function runConfirmDialog(){
+  const cb = confirmDialogCallback;
+  closeConfirmDialog();
+  if(cb) cb();
+}
+
 const ICON_BACK = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
 const ICON_PRINT = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>';
 const ICON_SAVE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/></svg>';
@@ -2398,10 +2547,7 @@ function buildBillText(){
 function cleanPhoneNumber(){
   const raw = document.getElementById('customerPhone').value.trim();
   if(!raw) return null;
-  let digits = raw.replace(/[^0-9]/g, '');
-  // if it looks like a plain 10-digit Indian mobile number, assume +91
-  if(digits.length === 10) digits = '91' + digits;
-  return digits;
+  return normalizeIndianMobileDigits(raw);
 }
 
 async function generateBillCanvas(){
@@ -2591,8 +2737,22 @@ function renderArchive(){
     wrap.innerHTML = `<div class="empty-state">No bills saved yet — print or share a bill and it'll show up here automatically.</div>`;
     return;
   }
-  const sorted = [...archive].sort((a,b)=> new Date(b.dateISO)-new Date(a.dateISO));
-  wrap.innerHTML = sorted.slice(0,100).map(b=>{
+  const query = (document.getElementById('archiveSearch').value || '').trim().toLowerCase();
+  let sorted = [...archive].sort((a,b)=> new Date(b.dateISO)-new Date(a.dateISO));
+  if(query){
+    sorted = sorted.filter(b =>
+      (b.customerName||'').toLowerCase().includes(query) ||
+      (b.billNo||'').toLowerCase().includes(query)
+    );
+  }
+  if(sorted.length===0){
+    wrap.innerHTML = `<div class="empty-state">No bills match "${escapeHtml(query)}".</div>`;
+    return;
+  }
+  // Without a search query, only show the most recent 100 to keep the list fast to
+  // render — search looks through the full saved history, not just the recent ones.
+  const shown = query ? sorted : sorted.slice(0,100);
+  wrap.innerHTML = shown.map(b=>{
     const d = new Date(b.dateISO);
     const dateStr = d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
     return `
@@ -2634,17 +2794,19 @@ function reopenArchivedBill(id){
 }
 
 function clearArchive(){
-  if(!confirm('Delete ALL saved bills from My Bills? This cannot be undone.')) return;
-  cloudCache.archive = [];
-  queueCloudSave();
-  renderArchive();
+  showConfirmDialog('Delete ALL saved bills from My Bills? This cannot be undone.', 'Delete all', ()=>{
+    cloudCache.archive = [];
+    queueCloudSave();
+    renderArchive();
+  }, true);
 }
 
 function clearHistory(){
-  if(!confirm('Delete ALL saved sales records? This cannot be undone.')) return;
-  cloudCache.sales = [];
-  queueCloudSave();
-  renderDashboard();
+  showConfirmDialog('Delete ALL saved sales records? This cannot be undone.', 'Delete all', ()=>{
+    cloudCache.sales = [];
+    queueCloudSave();
+    renderDashboard();
+  }, true);
 }
 
 function showResetConfirm(){
