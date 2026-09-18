@@ -1173,9 +1173,9 @@
       <p class="sub" id="historySub">Bills in the selected range, most recent first.</p>
       <div id="historyList"></div>
       <div class="actions-row" style="margin-top:16px;">
-        <button class="btn-secondary" onclick="exportCSV()">⬇ Excel (.csv)</button>
-        <button class="btn-secondary" onclick="exportPDF()">⬇ PDF</button>
-        <button class="btn-secondary" onclick="exportWord()">⬇ Word (.doc)</button>
+        <button class="btn-secondary" onclick="exportCSV()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; margin-right:5px;"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>Excel (.csv)</button>
+        <button class="btn-secondary" onclick="exportPDF()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; margin-right:5px;"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>PDF</button>
+        <button class="btn-secondary" onclick="exportWord()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; margin-right:5px;"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19h16"/></svg>Word (.doc)</button>
         <button class="btn-secondary" onclick="clearHistory()">Clear all sales records</button>
       </div>
     </div>
@@ -1269,8 +1269,40 @@
         <input id="shopName" placeholder="e.g. Green Valley General Store">
       </div>
       <div class="field">
-        <label for="shopDetails">Address / phone / GST / notes (optional)</label>
-        <input id="shopDetails" placeholder="e.g. Main Road, Your City · +91-XXXXXXXXXX">
+        <label for="shopAddress">Shop address</label>
+        <input id="shopAddress" placeholder="e.g. 12 Main Road, Beldanga, Murshidabad">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="shopPhone">Phone number</label>
+          <input id="shopPhone" placeholder="e.g. 98765 43210" inputmode="tel">
+        </div>
+        <div class="field">
+          <label for="shopGST">GSTIN (optional)</label>
+          <input id="shopGST" placeholder="e.g. 19ABCDE1234F1Z5">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Due reminder language</h2>
+      <p class="sub-note" style="margin:0 0 12px;">The message sent when you tap "Remind" on an outstanding due.</p>
+      <div class="field" style="margin-bottom:0;">
+        <label for="reminderLangSelect">Send reminders in</label>
+        <select id="reminderLangSelect" onchange="saveReminderLang()">
+          <option value="en">English</option>
+          <option value="hi">हिन्दी (Hindi)</option>
+          <option value="bn">বাংলা (Bengali)</option>
+          <option value="mr">मराठी (Marathi)</option>
+          <option value="te">తెలుగు (Telugu)</option>
+          <option value="ta">தமிழ் (Tamil)</option>
+          <option value="gu">ગુજરાતી (Gujarati)</option>
+          <option value="kn">ಕನ್ನಡ (Kannada)</option>
+          <option value="ml">മലയാളം (Malayalam)</option>
+          <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
+          <option value="or">ଓଡ଼ିଆ (Odia)</option>
+          <option value="ur">اردو (Urdu)</option>
+        </select>
       </div>
     </div>
 
@@ -1310,7 +1342,10 @@
       <h2>Reset app</h2>
       <p class="sub">Wipes everything saved in your account — shop name/address, all bills in My Bills, all Pro sales records, due/credit records, and bill number counter. This affects your account everywhere it's logged in, not just this device. Your Pro subscription status and free trial are not affected by this. Use this to start completely fresh.</p>
       <div id="resetStep1">
-        <button class="btn-secondary" style="color:var(--danger); border-color:var(--danger);" onclick="showResetConfirm()">⚠ Reset app (clear everything)</button>
+        <button class="btn-secondary" style="color:var(--danger); border-color:var(--danger);" onclick="showResetConfirm()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; margin-right:5px;"><path d="M10.3 3.9 1.9 18.3a1.5 1.5 0 0 0 1.3 2.2h17.6a1.5 1.5 0 0 0 1.3-2.2L13.7 3.9a1.5 1.5 0 0 0-2.6 0Z"/><path d="M12 9.5v4.5"/><path d="M12 17.2h.01"/></svg>
+          Reset app (clear everything)
+        </button>
       </div>
       <div id="resetStep2" style="display:none;">
         <p style="color:var(--danger); font-weight:600; font-size:13.5px; margin:0 0 10px;">Are you absolutely sure? This cannot be undone.</p>
@@ -1361,14 +1396,15 @@ db.enablePersistence().catch(e=>{
 // localStorage — so the rest of the app (render, dashboards, etc.) doesn't
 // need to change at all. Every save also queues a debounced push to Firestore.
 let cloudCache = {
-  shopProfile: {shopName:'', shopDetails:''},
+  shopProfile: {shopName:'', shopAddress:'', shopPhone:'', shopGST:''},
   billCounter: 0,
   pro: null,
   trialStartedAt: null,
   readAnnouncementIds: [],
   sales: [],
   archive: [],
-  dues: []
+  dues: [],
+  reminderLang: 'en'
 };
 let currentUid = null;
 let cloudSaveTimer = null;
@@ -1389,24 +1425,26 @@ async function loadCloudDataForUser(uid){
   if(snap.exists){
     const data = snap.data();
     cloudCache = {
-      shopProfile: data.shopProfile || {shopName:'', shopDetails:''},
+      shopProfile: data.shopProfile || {shopName:'', shopAddress:'', shopPhone:'', shopGST:''},
       billCounter: data.billCounter || 0,
       pro: data.pro || null,
       trialStartedAt: data.trialStartedAt || null,
       readAnnouncementIds: data.readAnnouncementIds || [],
       sales: data.sales || [],
       archive: data.archive || [],
-      dues: data.dues || []
+      dues: data.dues || [],
+      reminderLang: data.reminderLang || 'en'
     };
   } else {
     // brand-new account — start with empty defaults, a fresh 7-day free trial, and create the doc
     cloudCache = {
-      shopProfile:{shopName:'', shopDetails:''},
+      shopProfile:{shopName:'', shopAddress:'', shopPhone:'', shopGST:''},
       billCounter:0,
       pro:null,
       trialStartedAt: new Date().toISOString(),
       readAnnouncementIds: [],
-      sales:[], archive:[], dues:[]
+      sales:[], archive:[], dues:[],
+      reminderLang: 'en'
     };
     await docRef.set(cloudCache);
   }
@@ -1536,7 +1574,7 @@ function unlockPro(){
   cloudCache.pro = {shopName, key, activatedAt: new Date().toISOString()};
   queueCloudSave();
   errEl.style.color = 'var(--accent)';
-  errEl.textContent = '✔ Pro activated — valid for 1 year.';
+  errEl.textContent = '✓ Pro activated — valid for 1 year.';
   renderDashboard();
   renderProfile();
   updateAdVisibility();
@@ -1598,15 +1636,20 @@ function renderProfile(){
     unlockBtn.disabled = true;
   }
 
+  const reminderLangSelect = document.getElementById('reminderLangSelect');
+  if(reminderLangSelect){
+    reminderLangSelect.value = REMINDER_LANGUAGES[cloudCache.reminderLang] ? cloudCache.reminderLang : 'en';
+  }
+
   const status = getProStatus();
   const statusEl = document.getElementById('profileProStatus');
   if(status.active && status.reason === 'paid'){
     statusEl.style.color = 'var(--accent)';
-    statusEl.textContent = `✔ Pro active — valid until ${status.expiresAt.toLocaleDateString('en-IN')}.`;
+    statusEl.textContent = `✓ Pro active — valid until ${status.expiresAt.toLocaleDateString('en-IN')}.`;
   } else if(status.active && status.reason === 'trial'){
     const daysLeft = Math.max(1, Math.ceil((status.expiresAt.getTime() - Date.now()) / (24*60*60*1000)));
     statusEl.style.color = 'var(--accent)';
-    statusEl.textContent = `🎁 Free trial — ${daysLeft} day${daysLeft===1?'':'s'} left.`;
+    statusEl.textContent = `Free trial — ${daysLeft} day${daysLeft===1?'':'s'} left.`;
   } else if(status.reason === 'expired'){
     statusEl.style.color = 'var(--danger)';
     statusEl.textContent = `Your Pro subscription expired on ${status.expiresAt.toLocaleDateString('en-IN')}.`;
@@ -1647,7 +1690,7 @@ function handleProfilePhotoChange(event){
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
 
-      if(!cloudCache.shopProfile) cloudCache.shopProfile = {shopName:'', shopDetails:''};
+      if(!cloudCache.shopProfile) cloudCache.shopProfile = {shopName:'', shopAddress:'', shopPhone:'', shopGST:''};
       cloudCache.shopProfile.photoURL = dataUrl;
       queueCloudSave();
 
@@ -1825,7 +1868,10 @@ function renderDues(){
         <div class="amt">₹${fmt(d.totalDue)}</div>
       </div>
       <div class="actions">
-        <button class="btn-secondary" onclick="toggleDuePayForm(${idx})">💰 Record payment</button>
+        <button class="btn-secondary" onclick="toggleDuePayForm(${idx})">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px; margin-right:5px;"><rect x="2" y="6" width="20" height="13" rx="2"/><circle cx="12" cy="12.5" r="3"/><path d="M6 6V4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V6"/></svg>
+          Record payment
+        </button>
         ${d.phone ? `<button class="btn-secondary" onclick="remindDueFlow(${idx})">${WA_ICON}Remind</button>` : ''}
       </div>
       <div class="due-pay-form" id="duePayForm-${idx}">
@@ -1854,19 +1900,47 @@ function dueReminderPhone(entry){
   return digits.length===10 ? '91'+digits : digits;
 }
 
+/* ---------- DUE REMINDER MESSAGE — MAJOR INDIAN LANGUAGES ----------
+   One message wording per language, used for both WhatsApp and SMS (only the
+   sending channel differs). {name}/{shop}/{amount} are filled in per customer. */
+const REMINDER_LANGUAGES = {
+  en: {label:'English', build:(name,shop,amt)=>`Dear ${name}, this is a reminder that your outstanding balance at ${shop} is ₹${amt}. Kindly clear it at your earliest convenience. Thank you.`},
+  hi: {label:'हिन्दी (Hindi)', build:(name,shop,amt)=>`प्रिय ${name}, यह एक अनुस्मारक है कि ${shop} पर आपका बकाया ₹${amt} है। कृपया इसे यथाशीघ्र चुका दें। धन्यवाद।`},
+  bn: {label:'বাংলা (Bengali)', build:(name,shop,amt)=>`প্রিয় ${name}, এটি একটি অনুস্মারক যে ${shop}-এ আপনার বকেয়া পরিমাণ ₹${amt}। অনুগ্রহ করে যত দ্রুত সম্ভব তা পরিশোধ করুন। ধন্যবাদ।`},
+  mr: {label:'मराठी (Marathi)', build:(name,shop,amt)=>`प्रिय ${name}, ही एक आठवण आहे की ${shop} येथे तुमची थकबाकी ₹${amt} आहे. कृपया लवकरात लवकर ती भरा. धन्यवाद.`},
+  te: {label:'తెలుగు (Telugu)', build:(name,shop,amt)=>`ప్రియమైన ${name}, ${shop} వద్ద మీ బకాయి ₹${amt} అని గుర్తు చేస్తున్నాము. దయచేసి వీలైనంత త్వరగా చెల్లించండి. ధన్యవాదాలు.`},
+  ta: {label:'தமிழ் (Tamil)', build:(name,shop,amt)=>`அன்புள்ள ${name}, ${shop}-இல் உங்கள் நிலுவைத் தொகை ₹${amt} என்பதை நினைவூட்டுகிறோம். தயவுசெய்து விரைவில் செலுத்தவும். நன்றி.`},
+  gu: {label:'ગુજરાતી (Gujarati)', build:(name,shop,amt)=>`પ્રિય ${name}, આ યાદ અપાવવા માટે છે કે ${shop} પર તમારી બાકી રકમ ₹${amt} છે. કૃપા કરીને વહેલી તકે ચૂકવો. આભાર.`},
+  kn: {label:'ಕನ್ನಡ (Kannada)', build:(name,shop,amt)=>`ಪ್ರಿಯ ${name}, ${shop}ನಲ್ಲಿ ನಿಮ್ಮ ಬಾಕಿ ಮೊತ್ತ ₹${amt} ಎಂದು ನೆನಪಿಸುತ್ತಿದ್ದೇವೆ. ದಯವಿಟ್ಟು ಆದಷ್ಟು ಬೇಗ ಪಾವತಿಸಿ. ಧನ್ಯವಾದಗಳು.`},
+  ml: {label:'മലയാളം (Malayalam)', build:(name,shop,amt)=>`പ്രിയ ${name}, ${shop}-ൽ നിങ്ങളുടെ ബാക്കി തുക ₹${amt} ആണെന്ന് ഓർമ്മിപ്പിക്കുന്നു. ദയവായി എത്രയും വേഗം അടയ്ക്കുക. നന്ദി.`},
+  pa: {label:'ਪੰਜਾਬੀ (Punjabi)', build:(name,shop,amt)=>`ਪਿਆਰੇ ${name}, ਇਹ ਯਾਦ ਦਿਵਾਉਣ ਲਈ ਹੈ ਕਿ ${shop} 'ਤੇ ਤੁਹਾਡਾ ਬਕਾਇਆ ₹${amt} ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਜਲਦੀ ਤੋਂ ਜਲਦੀ ਅਦਾ ਕਰੋ। ਧੰਨਵਾਦ।`},
+  or: {label:'ଓଡ଼ିଆ (Odia)', build:(name,shop,amt)=>`ପ୍ରିୟ ${name}, ଏହା ଏକ ସ୍ମାରକ ଯେ ${shop} ରେ ଆପଣଙ୍କର ବକେୟା ରାଶି ₹${amt}। ଦୟାକରି ଯଥାଶୀଘ୍ର ଏହାକୁ ପରିଶୋଧ କରନ୍ତୁ। ଧନ୍ୟବାଦ।`},
+  ur: {label:'اردو (Urdu)', build:(name,shop,amt)=>`محترم ${name}، یہ ایک یاد دہانی ہے کہ ${shop} پر آپ کا بقایا ₹${amt} ہے۔ براہ کرم جلد از جلد ادا کریں۔ شکریہ۔`}
+};
+
+function saveReminderLang(){
+  const val = document.getElementById('reminderLangSelect').value;
+  cloudCache.reminderLang = val;
+  queueCloudSave();
+}
+
+function buildDueReminderMessage(entry){
+  const shopName = document.getElementById('shopName').value.trim() || 'our shop';
+  const lang = REMINDER_LANGUAGES[cloudCache.reminderLang] ? cloudCache.reminderLang : 'en';
+  return REMINDER_LANGUAGES[lang].build(entry.name || 'Customer', shopName, fmt(entry.totalDue));
+}
+
 function sendDueReminderWhatsApp(idx){
   const entry = currentDuesSorted[idx];
   if(!entry || !entry.phone) return;
-  const shopName = document.getElementById('shopName').value.trim() || 'our shop';
-  const msg = `Dear ${entry.name || 'Customer'}, this is a gentle reminder that your outstanding balance at ${shopName} is Rs.${fmt(entry.totalDue)}. We would appreciate it if you could clear this at your earliest convenience. Thank you for your continued business.`;
+  const msg = buildDueReminderMessage(entry);
   window.open(`https://wa.me/${dueReminderPhone(entry)}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 function sendDueReminderSMS(idx){
   const entry = currentDuesSorted[idx];
   if(!entry || !entry.phone) return;
-  const shopName = document.getElementById('shopName').value.trim() || 'our shop';
-  const msg = `Dear ${entry.name || 'Customer'}, this is a reminder that your outstanding balance at ${shopName} is Rs.${fmt(entry.totalDue)}. Kindly clear it at your earliest convenience. Thank you.`;
+  const msg = buildDueReminderMessage(entry);
   window.location.href = `sms:${dueReminderPhone(entry)}?body=${encodeURIComponent(msg)}`;
 }
 
@@ -2029,7 +2103,9 @@ function renderItemList(){
 function getBillFields(){
   return {
     shopName: document.getElementById('shopName').value.trim() || 'Your Shop Name',
-    shopDetails: document.getElementById('shopDetails').value.trim(),
+    shopAddress: document.getElementById('shopAddress').value.trim(),
+    shopPhone: document.getElementById('shopPhone').value.trim(),
+    shopGST: document.getElementById('shopGST').value.trim(),
     billNo: document.getElementById('billNo').value.trim(),
     billDate: document.getElementById('billDate').value,
     customerName: document.getElementById('customerName').value.trim(),
@@ -2089,7 +2165,8 @@ function render(){
         ${(cloudCache.shopProfile && cloudCache.shopProfile.logoURL) ? `<img src="${cloudCache.shopProfile.logoURL}" alt="" style="width:44px; height:44px; object-fit:contain; border-radius:6px; flex-shrink:0;">` : ''}
         <div>
           <p class="shop-name">${escapeHtml(f.shopName)}</p>
-          ${f.shopDetails ? `<p class="shop-sub">${escapeHtml(f.shopDetails)}</p>` : ''}
+          ${f.shopAddress ? `<p class="shop-sub">${escapeHtml(f.shopAddress)}</p>` : ''}
+          ${(f.shopPhone || f.shopGST) ? `<p class="shop-sub">${[f.shopPhone ? 'Phone: '+escapeHtml(f.shopPhone) : '', f.shopGST ? 'GSTIN: '+escapeHtml(f.shopGST) : ''].filter(Boolean).join(' &nbsp;·&nbsp; ')}</p>` : ''}
         </div>
       </div>
       <div class="bill-doc-meta">
@@ -2191,9 +2268,9 @@ function finalizeBill(){
         }
       }
 
-      flashSaveNote('✔ Saved to My Bills and your Pro sales records.');
+      flashSaveNote('✓ Saved to My Bills and your Pro sales records.');
     } else {
-      flashSaveNote('✔ Saved to My Bills.');
+      flashSaveNote('✓ Saved to My Bills.');
     }
     currentBillSaved = true;
   }
@@ -2203,10 +2280,10 @@ function updateTrackingStatus(){
   const note = document.getElementById('saveNote');
   if(!note) return;
   if(isPro()){
-    note.textContent = '✔ Every bill saves automatically to My Bills and your Pro sales dashboard.';
+    note.textContent = '✓ Every bill saves automatically to My Bills and your Pro sales dashboard.';
     note.style.color = 'var(--accent)';
   } else {
-    note.textContent = '✔ Every bill saves automatically to My Bills. Upgrade to Pro for automatic sales analytics too.';
+    note.textContent = '✓ Every bill saves automatically to My Bills. Upgrade to Pro for automatic sales analytics too.';
     note.style.color = 'var(--ink-soft)';
   }
 }
@@ -2290,7 +2367,11 @@ function buildBillText(){
 
   let lines = [];
   lines.push(f.shopName);
-  if(f.shopDetails) lines.push(f.shopDetails);
+  if(f.shopAddress) lines.push(f.shopAddress);
+  const contactBits = [];
+  if(f.shopPhone) contactBits.push('Phone: '+f.shopPhone);
+  if(f.shopGST) contactBits.push('GSTIN: '+f.shopGST);
+  if(contactBits.length) lines.push(contactBits.join(' · '));
   lines.push('');
   if(f.billNo) lines.push('Bill No: '+f.billNo);
   if(f.billDate) lines.push('Date: '+new Date(f.billDate+'T00:00:00').toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'}));
@@ -2367,7 +2448,7 @@ async function deliverFileToCustomer(blob, filename){
     downloadBlob(blob, filename);
     const text = encodeURIComponent('Sending your bill — please see the attached file.');
     window.open(`https://wa.me/${phone}?text=${text}`, '_blank');
-    alert(`Bill ${kind} downloaded, and WhatsApp is opening a chat with that number directly — no need to save it as a contact.\n\nTap the 📎 attach icon in WhatsApp and choose the downloaded file to send it.`);
+    alert(`Bill ${kind} downloaded, and WhatsApp is opening a chat with that number directly — no need to save it as a contact.\n\nTap the attach icon in WhatsApp and choose the downloaded file to send it.`);
     return;
   }
 
@@ -2485,7 +2566,9 @@ function saveBillToArchive(f){
     billNo: f.billNo,
     dateISO: f.billDate ? (f.billDate+'T12:00:00') : new Date().toISOString(),
     shopName: f.shopName,
-    shopDetails: f.shopDetails,
+    shopAddress: f.shopAddress,
+    shopPhone: f.shopPhone,
+    shopGST: f.shopGST,
     customerName: f.customerName,
     customerNote: f.customerNote,
     customerPhone: document.getElementById('customerPhone').value.trim(),
@@ -2527,7 +2610,9 @@ function reopenArchivedBill(id){
   if(!b) return;
 
   document.getElementById('shopName').value = b.shopName || '';
-  document.getElementById('shopDetails').value = b.shopDetails || '';
+  document.getElementById('shopAddress').value = b.shopAddress || b.shopDetails || '';
+  document.getElementById('shopPhone').value = b.shopPhone || '';
+  document.getElementById('shopGST').value = b.shopGST || '';
   document.getElementById('billNo').value = b.billNo || '';
   document.getElementById('billDate').value = b.dateISO ? b.dateISO.slice(0,10) : '';
   document.getElementById('customerName').value = b.customerName || '';
@@ -2577,12 +2662,13 @@ function resetApp(){
   // not to app data — reset wipes bills/sales/dues, but never resets these (otherwise
   // resetting would let someone claim endless free trials).
   cloudCache = {
-    shopProfile:{shopName:'', shopDetails:''},
+    shopProfile:{shopName:'', shopAddress:'', shopPhone:'', shopGST:''},
     billCounter:0,
     pro: cloudCache.pro,
     trialStartedAt: cloudCache.trialStartedAt,
     readAnnouncementIds: cloudCache.readAnnouncementIds || [],
-    sales:[], archive:[], dues:[]
+    sales:[], archive:[], dues:[],
+    reminderLang: cloudCache.reminderLang || 'en'
   };
   queueCloudSave();
 
@@ -2660,10 +2746,10 @@ function renderDashboard(){
   if(status.reason === 'trial'){
     const daysLeft = Math.max(1, Math.ceil((status.expiresAt.getTime() - Date.now()) / (24*60*60*1000)));
     trialBanner.style.display = 'block';
-    trialBanner.innerHTML = `🎁 Free trial — <strong>${daysLeft} day${daysLeft===1?'':'s'} left</strong>. Enter a Pro license key anytime to keep these features after it ends. <a href="#" onclick="emailAboutPro(); return false;">Ask about pricing</a>`;
+    trialBanner.innerHTML = `Free trial — <strong>${daysLeft} day${daysLeft===1?'':'s'} left</strong>. Enter a Pro license key anytime to keep these features after it ends. <a href="#" onclick="emailAboutPro(); return false;">Ask about pricing</a>`;
   } else {
     trialBanner.style.display = 'block';
-    trialBanner.innerHTML = `✔ Pro active — valid until <strong>${status.expiresAt.toLocaleDateString('en-IN')}</strong>.`;
+    trialBanner.innerHTML = `✓ Pro active — valid until <strong>${status.expiresAt.toLocaleDateString('en-IN')}</strong>.`;
   }
 
   const sales = loadSales();
@@ -2802,8 +2888,10 @@ function applySuggestedBillNo(){
 /* ---------- SHOP PROFILE (synced to the logged-in account) ---------- */
 function saveShopProfile(){
   const shopName = document.getElementById('shopName').value;
-  const shopDetails = document.getElementById('shopDetails').value;
-  cloudCache.shopProfile = {...(cloudCache.shopProfile||{}), shopName, shopDetails};
+  const shopAddress = document.getElementById('shopAddress').value;
+  const shopPhone = document.getElementById('shopPhone').value;
+  const shopGST = document.getElementById('shopGST').value;
+  cloudCache.shopProfile = {...(cloudCache.shopProfile||{}), shopName, shopAddress, shopPhone, shopGST};
   queueCloudSave();
 }
 
@@ -2811,7 +2899,12 @@ function loadShopProfile(){
   const data = cloudCache.shopProfile;
   if(!data) return;
   if(data.shopName) document.getElementById('shopName').value = data.shopName;
-  if(data.shopDetails) document.getElementById('shopDetails').value = data.shopDetails;
+  // Older accounts saved one combined "address / phone / GST" field — carry it
+  // into the new Address field once, so nothing already saved is lost.
+  if(data.shopAddress) document.getElementById('shopAddress').value = data.shopAddress;
+  else if(data.shopDetails) document.getElementById('shopAddress').value = data.shopDetails;
+  if(data.shopPhone) document.getElementById('shopPhone').value = data.shopPhone;
+  if(data.shopGST) document.getElementById('shopGST').value = data.shopGST;
   const logoImg = document.getElementById('shopLogoPreviewImg');
   const logoPlaceholder = document.getElementById('shopLogoPlaceholder');
   if(logoImg && logoPlaceholder){
@@ -2882,11 +2975,12 @@ function initAppUI(){
   applySuggestedBillNo();
 
   if(!listenersAttached){
-    ['shopName','shopDetails','billNo','billDate','customerName','customerNote'].forEach(id=>{
+    ['shopName','shopAddress','shopPhone','shopGST','billNo','billDate','customerName','customerNote'].forEach(id=>{
       document.getElementById(id).addEventListener('input', render);
     });
-    document.getElementById('shopName').addEventListener('input', saveShopProfile);
-    document.getElementById('shopDetails').addEventListener('input', saveShopProfile);
+    ['shopName','shopAddress','shopPhone','shopGST'].forEach(id=>{
+      document.getElementById(id).addEventListener('input', saveShopProfile);
+    });
     listenersAttached = true;
   }
 
