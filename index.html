@@ -35,12 +35,14 @@
 
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
+  html{ overflow-x:hidden; }
   body{
     background:var(--paper-alt);
     color:var(--ink);
     font-family:'Inter',sans-serif;
     min-height:100vh;
     padding-bottom:66px;
+    overflow-x:hidden;
   }
   @media(min-width:1024px){
     body{ padding-bottom:0; padding-left:224px; }
@@ -170,6 +172,7 @@
   }
   input, select{
     width:100%;
+    min-width:0;
     padding:9px 10px;
     border:1px solid var(--line);
     border-radius:6px;
@@ -184,7 +187,8 @@
     box-shadow:0 0 0 3px var(--accent-soft);
   }
   .field{margin-bottom:14px;}
-  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px; min-width:0;}
+  .row2 > div{min-width:0;}
 
   .item-form{
     display:grid;
@@ -194,7 +198,8 @@
     border-top:1px dashed var(--line);
     margin-top:6px;
   }
-  .item-form .row3{display:grid; grid-template-columns:1fr 100px 110px; gap:8px;}
+  .item-form .row3{display:grid; grid-template-columns:1fr 100px 110px; gap:8px; min-width:0;}
+  .item-form .row3 > div{min-width:0;}
 
   button{
     font-family:'Inter',sans-serif;
