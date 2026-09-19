@@ -262,6 +262,31 @@
     cursor:pointer;
     flex-shrink:0;
   }
+  .guest-banner{
+    position:sticky;
+    top:0;
+    z-index:79;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--gold);
+    color:#fff;
+    font-size:12.5px;
+    font-weight:500;
+    padding:9px 14px;
+  }
+  .guest-banner span{ flex:1; }
+  .guest-banner button{
+    background:rgba(255,255,255,0.22);
+    border:none;
+    color:#fff;
+    font-size:12px;
+    font-weight:700;
+    padding:5px 10px;
+    border-radius:6px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
 
   .action-sheet-overlay{
     position:fixed; inset:0;
@@ -850,6 +875,15 @@
     min-height:16px;
     text-align:center;
   }
+  .guest-link{
+    display:block;
+    text-align:center;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink-soft);
+    text-decoration:underline;
+    margin-top:4px;
+  }
   .auth-note{
     font-size:12px;
     color:var(--ink-soft);
@@ -938,6 +972,8 @@
     </button>
 
     <p class="auth-error" id="authError"></p>
+
+    <a href="#" class="guest-link" onclick="continueAsGuest(); return false;">Just want to look around? Continue as guest</a>
   </div>
 </div>
 
@@ -948,6 +984,11 @@
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.9 18.3a1.5 1.5 0 0 0 1.3 2.2h17.6a1.5 1.5 0 0 0 1.3-2.2L13.7 3.9a1.5 1.5 0 0 0-2.6 0Z"/><path d="M12 9.5v4.5"/><path d="M12 17.2h.01"/></svg>
   <span id="syncErrorText">Couldn't save your last change — check your internet connection.</span>
   <button onclick="retryCloudSave()">Retry now</button>
+</div>
+
+<div id="guestBanner" class="guest-banner" style="display:none;">
+  <span>You're exploring as a guest — nothing you enter here will be saved.</span>
+  <button onclick="signInWithGoogle()">Sign in with Google</button>
 </div>
 
 <div class="topbar">
@@ -1492,6 +1533,7 @@ let cloudCache = {
   reminderLang: 'en'
 };
 let currentUid = null;
+let isGuestMode = false;
 let cloudSaveTimer = null;
 
 function showSyncError(){
@@ -1577,20 +1619,49 @@ function signInWithGoogle(){
   });
 }
 
+function continueAsGuest(){
+  isGuestMode = true;
+  currentUid = null;
+  cloudCache = {
+    shopProfile:{shopName:'', shopAddress:'', shopPhone:'', shopGST:''},
+    billCounter:0,
+    pro:null,
+    trialStartedAt:null,
+    readAnnouncementIds:[],
+    sales:[], archive:[], dues:[],
+    reminderLang:'en'
+  };
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'block';
+  document.getElementById('guestBanner').style.display = 'flex';
+  initAppUI();
+}
+
 function handleLogout(){
+  if(isGuestMode){
+    showConfirmDialog('Leave guest mode? Nothing you entered here was saved, so there\'s nothing to keep.', 'Leave', ()=>{
+      isGuestMode = false;
+      document.getElementById('guestBanner').style.display = 'none';
+      document.getElementById('appRoot').style.display = 'none';
+      document.getElementById('authScreen').style.display = 'flex';
+    }, true);
+    return;
+  }
   showConfirmDialog('Log out of Easy Bill Maker?', 'Log out', ()=>{ auth.signOut(); }, true);
 }
 
 auth.onAuthStateChanged(async (user)=>{
   document.getElementById('loadingScreen').style.display = 'none';
   if(user){
+    isGuestMode = false;
+    document.getElementById('guestBanner').style.display = 'none';
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
     const nameEl = document.getElementById('userDisplay');
     if(nameEl) nameEl.textContent = user.displayName ? `Signed in as ${user.displayName}` : (user.email || '');
     await loadCloudDataForUser(user.uid);
     initAppUI();
-  } else {
+  } else if(!isGuestMode){
     currentUid = null;
     document.getElementById('appRoot').style.display = 'none';
     document.getElementById('authScreen').style.display = 'flex';
@@ -1713,10 +1784,17 @@ function emailAboutPro(){
 function renderProfile(){
   const user = auth.currentUser;
   const nameEl = document.getElementById('profileUserDisplay');
+  const logoutBtn = document.getElementById('navLogout');
   if(nameEl){
-    nameEl.textContent = user
-      ? (user.displayName ? `Signed in as ${user.displayName}` : (user.email || ''))
-      : '';
+    if(isGuestMode){
+      nameEl.textContent = 'Browsing as guest — sign in with Google to save your work';
+      if(logoutBtn) logoutBtn.textContent = 'Leave guest mode';
+    } else {
+      nameEl.textContent = user
+        ? (user.displayName ? `Signed in as ${user.displayName}` : (user.email || ''))
+        : '';
+      if(logoutBtn) logoutBtn.textContent = 'Log Out';
+    }
   }
 
   const photoURL = (cloudCache.shopProfile && cloudCache.shopProfile.photoURL) || null;
