@@ -973,7 +973,7 @@
 
     <p class="auth-error" id="authError"></p>
 
-    <a href="#" class="guest-link" onclick="continueAsGuest(); return false;">Just want to look around? Continue as guest</a>
+    <a href="#" class="guest-link" onclick="continueAsGuest(); return false;">Continue as guest</a>
   </div>
 </div>
 
@@ -1396,7 +1396,7 @@
       </div>
       <div class="field">
         <label for="shopAddress">Shop address</label>
-        <input id="shopAddress" placeholder="e.g. 12 Main Road, Beldanga, Murshidabad">
+        <input id="shopAddress" placeholder="e.g. 21 MG Road, Near Bus Stand, Nagpur">
       </div>
       <div class="row2">
         <div class="field">
@@ -1407,6 +1407,11 @@
           <label for="shopGST">GSTIN (optional)</label>
           <input id="shopGST" placeholder="e.g. 19ABCDE1234F1Z5">
         </div>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label for="shopUpi">UPI ID (optional)</label>
+        <input id="shopUpi" placeholder="e.g. yourshop@okaxis">
+        <p class="sub-note" style="margin:6px 0 0;">Added to due reminders so customers can pay you directly, without needing to call or visit.</p>
       </div>
     </div>
 
@@ -2115,6 +2120,15 @@ const REMINDER_LANGUAGES = {
   ur: {label:'اردو (Urdu)', build:(name,shop,amt)=>`محترم ${name}، یہ ایک یاد دہانی ہے کہ ${shop} پر آپ کا بقایا ₹${amt} ہے۔ براہ کرم جلد از جلد ادا کریں۔ شکریہ۔`}
 };
 
+// Short "Pay via UPI:" label per language, appended after the main reminder
+// message when a UPI ID is saved on the shop profile.
+const UPI_PAY_LABELS = {
+  en:'Pay via UPI:', hi:'यूपीआई से भुगतान करें:', bn:'ইউপিআই-এ পরিশোধ করুন:',
+  mr:'यूपीआयने पैसे भरा:', te:'UPI ద్వారా చెల్లించండి:', ta:'UPI மூலம் செலுத்தவும்:',
+  gu:'UPI દ્વારા ચૂકવો:', kn:'UPI ಮೂಲಕ ಪಾವತಿಸಿ:', ml:'UPI വഴി അടയ്ക്കുക:',
+  pa:'UPI ਰਾਹੀਂ ਭੁਗਤਾਨ ਕਰੋ:', or:'UPI ମାଧ୍ୟମରେ ପେମେଣ୍ଟ କରନ୍ତୁ:', ur:'UPI کے ذریعے ادائیگی کریں:'
+};
+
 function saveReminderLang(){
   const val = document.getElementById('reminderLangSelect').value;
   cloudCache.reminderLang = val;
@@ -2124,7 +2138,13 @@ function saveReminderLang(){
 function buildDueReminderMessage(entry){
   const shopName = document.getElementById('shopName').value.trim() || 'our shop';
   const lang = REMINDER_LANGUAGES[cloudCache.reminderLang] ? cloudCache.reminderLang : 'en';
-  return REMINDER_LANGUAGES[lang].build(entry.name || 'Customer', shopName, fmt(entry.totalDue));
+  let msg = REMINDER_LANGUAGES[lang].build(entry.name || 'Customer', shopName, fmt(entry.totalDue));
+  const upiId = (cloudCache.shopProfile && cloudCache.shopProfile.shopUpi) ? cloudCache.shopProfile.shopUpi.trim() : '';
+  if(upiId){
+    const label = UPI_PAY_LABELS[lang] || UPI_PAY_LABELS.en;
+    msg += `\n\n${label} ${upiId}`;
+  }
+  return msg;
 }
 
 function sendDueReminderWhatsApp(idx){
@@ -3133,7 +3153,8 @@ function saveShopProfile(){
   const shopAddress = document.getElementById('shopAddress').value;
   const shopPhone = document.getElementById('shopPhone').value;
   const shopGST = document.getElementById('shopGST').value;
-  cloudCache.shopProfile = {...(cloudCache.shopProfile||{}), shopName, shopAddress, shopPhone, shopGST};
+  const shopUpi = document.getElementById('shopUpi').value;
+  cloudCache.shopProfile = {...(cloudCache.shopProfile||{}), shopName, shopAddress, shopPhone, shopGST, shopUpi};
   queueCloudSave();
 }
 
@@ -3147,6 +3168,7 @@ function loadShopProfile(){
   else if(data.shopDetails) document.getElementById('shopAddress').value = data.shopDetails;
   if(data.shopPhone) document.getElementById('shopPhone').value = data.shopPhone;
   if(data.shopGST) document.getElementById('shopGST').value = data.shopGST;
+  if(data.shopUpi) document.getElementById('shopUpi').value = data.shopUpi;
   const logoImg = document.getElementById('shopLogoPreviewImg');
   const logoPlaceholder = document.getElementById('shopLogoPlaceholder');
   if(logoImg && logoPlaceholder){
@@ -3217,10 +3239,10 @@ function initAppUI(){
   applySuggestedBillNo();
 
   if(!listenersAttached){
-    ['shopName','shopAddress','shopPhone','shopGST','billNo','billDate','customerName','customerNote'].forEach(id=>{
+    ['shopName','shopAddress','shopPhone','shopGST','shopUpi','billNo','billDate','customerName','customerNote'].forEach(id=>{
       document.getElementById(id).addEventListener('input', render);
     });
-    ['shopName','shopAddress','shopPhone','shopGST'].forEach(id=>{
+    ['shopName','shopAddress','shopPhone','shopGST','shopUpi'].forEach(id=>{
       document.getElementById(id).addEventListener('input', saveShopProfile);
     });
     listenersAttached = true;
