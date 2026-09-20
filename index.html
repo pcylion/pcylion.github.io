@@ -189,6 +189,11 @@
   .field{margin-bottom:14px;}
   .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px; min-width:0;}
   .row2 > div{min-width:0;}
+  @media(max-width:480px){
+    /* Some fields (like the native date picker) refuse to shrink below a fixed
+       width on phones no matter what CSS says — stack instead of forcing 2 columns. */
+    .row2{ grid-template-columns:1fr; }
+  }
 
   .item-form{
     display:grid;
