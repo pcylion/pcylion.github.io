@@ -186,6 +186,12 @@
     border-color:var(--accent);
     box-shadow:0 0 0 3px var(--accent-soft);
   }
+  input:read-only{
+    background:var(--paper-alt);
+    color:var(--ink-soft);
+    cursor:default;
+  }
+  input:read-only:focus{ box-shadow:none; border-color:var(--line); }
   .field{margin-bottom:14px;}
   .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px; min-width:0;}
   .row2 > div{min-width:0;}
@@ -430,6 +436,15 @@
   }
   .bill-doc-meta .label{color:var(--ink-soft);}
   .bill-doc-meta .val{color:var(--ink); font-weight:600;}
+  @media(max-width:600px){
+    /* #bill's desktop padding and the never-wrap Bill No/Date block are both
+       sized for a wide screen — on a phone they force the whole card wider
+       than the screen. Shrink padding and let the row wrap instead. */
+    #bill{ padding:22px 16px; }
+    .bill-head{ flex-wrap:wrap; }
+    .bill-doc-meta{ text-align:left; }
+    .shop-sub{ max-width:100%; }
+  }
 
   .bill-parties{
     display:flex;
@@ -1387,7 +1402,13 @@
     </div>
 
     <div class="panel">
-      <h2>Shop / issued by</h2>
+      <h2 style="display:flex; align-items:center; justify-content:space-between;">
+        <span>Shop / issued by</span>
+        <span>
+          <button class="btn-secondary" id="shopEditBtn" style="padding:6px 14px; font-size:12.5px;" onclick="unlockShopFields()">Edit</button>
+          <button class="btn-add" id="shopSaveBtn" style="padding:6px 14px; font-size:12.5px; display:none;" onclick="saveShopProfileAndLock()">Save</button>
+        </span>
+      </h2>
       <p class="sub-note" style="margin:0 0 12px;">Saved once here — every new bill uses this automatically.</p>
       <div class="field" style="display:flex; align-items:center; gap:12px;">
         <input type="file" id="shopLogoInput" accept="image/*" style="display:none;" onchange="handleShopLogoChange(event)">
@@ -1423,6 +1444,7 @@
         <input id="shopUpi" placeholder="e.g. yourshop@okaxis">
         <p class="sub-note" style="margin:6px 0 0;">Added to due reminders so customers can pay you directly, without needing to call or visit.</p>
       </div>
+      <p class="save-note" id="shopSaveNote" style="display:none;"></p>
     </div>
 
     <div class="panel">
@@ -1811,6 +1833,8 @@ function renderProfile(){
       if(logoutBtn) logoutBtn.textContent = 'Log Out';
     }
   }
+
+  updateShopEditLockState();
 
   const photoURL = (cloudCache.shopProfile && cloudCache.shopProfile.photoURL) || null;
   const imgEl = document.getElementById('profileAvatarImg');
@@ -3168,6 +3192,46 @@ function saveShopProfile(){
   queueCloudSave();
 }
 
+const SHOP_FIELD_IDS = ['shopName','shopAddress','shopPhone','shopGST','shopUpi'];
+
+function unlockShopFields(){
+  SHOP_FIELD_IDS.forEach(id=>{ document.getElementById(id).readOnly = false; });
+  document.getElementById('shopEditBtn').style.display = 'none';
+  document.getElementById('shopSaveBtn').style.display = 'inline-block';
+  document.getElementById('shopName').focus();
+}
+
+function lockShopFields(){
+  // Re-populate from the last saved data, so a field left mid-edit without tapping
+  // Save (e.g. the person switched tabs) reverts instead of looking saved when it isn't.
+  loadShopProfile();
+  SHOP_FIELD_IDS.forEach(id=>{ document.getElementById(id).readOnly = true; });
+  document.getElementById('shopEditBtn').style.display = 'inline-block';
+  document.getElementById('shopSaveBtn').style.display = 'none';
+  render();
+}
+
+function saveShopProfileAndLock(){
+  saveShopProfile();
+  lockShopFields();
+  const note = document.getElementById('shopSaveNote');
+  note.textContent = '✓ Shop details saved.';
+  note.style.display = 'block';
+  clearTimeout(saveShopProfileAndLock._t);
+  saveShopProfileAndLock._t = setTimeout(()=>{ note.style.display = 'none'; }, 3000);
+}
+
+// Locks the shop fields if details were already saved before (returning user), or
+// leaves them open for first-time fill-in when nothing's been saved yet.
+function updateShopEditLockState(){
+  const hasShopName = !!(cloudCache.shopProfile && cloudCache.shopProfile.shopName && cloudCache.shopProfile.shopName.trim());
+  if(hasShopName){
+    lockShopFields();
+  } else {
+    unlockShopFields();
+  }
+}
+
 function loadShopProfile(){
   const data = cloudCache.shopProfile;
   if(!data) return;
@@ -3252,9 +3316,10 @@ function initAppUI(){
     ['shopName','shopAddress','shopPhone','shopGST','shopUpi','billNo','billDate','customerName','customerNote'].forEach(id=>{
       document.getElementById(id).addEventListener('input', render);
     });
-    ['shopName','shopAddress','shopPhone','shopGST','shopUpi'].forEach(id=>{
-      document.getElementById(id).addEventListener('input', saveShopProfile);
-    });
+    // Shop fields no longer auto-save on every keystroke — they're locked (read-only)
+    // until "Edit" is tapped, and only save when "Save" is tapped. See unlockShopFields()/
+    // saveShopProfileAndLock() below. The live bill-preview listener above still applies
+    // while editing, so the preview updates immediately even before saving.
     listenersAttached = true;
   }
 
