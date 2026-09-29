@@ -1934,9 +1934,15 @@ function handleProfilePhotoChange(event){
 }
 
 let adPushed = false;
+// AdSense policy: no Google-served ads on screens without publisher content (login screens,
+// app/tool screens). The billing app screens are exactly that, so in-app ads stay OFF.
+// Ads belong only on the public guide/article pages (guides.html and guide-*.html).
+const SHOW_ADS_IN_APP = false;
+
 function updateAdVisibility(){
   const ad = document.getElementById('adBanner');
   if(!ad) return;
+  if(!SHOW_ADS_IN_APP){ ad.style.display = 'none'; return; }
   const pro = isPro();
   ad.style.display = pro ? 'none' : 'block';
   // Ad markup sits behind the login screen until initAppUI() runs, so the
@@ -3378,6 +3384,16 @@ function renderNotifPanel(){
 </script>
 
 <footer class="site-footer">
+  <h2>Free guides for shop owners</h2>
+  <p>Practical, plain-language articles on billing, credit and getting paid.</p>
+  <ul>
+    <li><a href="guide-shop-bill-tips.html">How to make a professional bill for your shop</a></li>
+    <li><a href="guide-khata-udhaar-tips.html">Managing udhaar (credit): how to give it without losing money</a></li>
+    <li><a href="guide-gst-invoice-basics.html">GST invoice basics for small shopkeepers</a></li>
+    <li><a href="guide-upi-payments-shop.html">Accepting UPI payments safely in a small shop</a></li>
+  </ul>
+  <p><a href="guides.html">See all guides</a> &nbsp;·&nbsp; <a href="about.html">About</a> &nbsp;·&nbsp; <a href="contact.html">Contact</a></p>
+
   <h2>About Easy Bill Maker</h2>
   <p>Easy Bill Maker is a free billing and invoicing tool built for small shopkeepers, retailers, and freelancers who need to create clean, professional bills quickly — without expensive software or a learning curve. Enter item names, quantities, and unit prices (per kg, per litre, or per piece), and the app calculates totals, applies discounts or tax, and produces a print-ready or PDF bill in seconds.</p>
 
